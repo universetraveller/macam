@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; media-src blob:; connect-src 'none'">
+<title>Macam Audio — Browser Audio Test</title>
+<style>
+body{font:15px system-ui;max-width:850px;margin:20px auto;padding:0 20px;line-height:1.4;color:#18282a;background:#f2f6f5}h1{font-size:26px;margin:0}h2{font-size:16px;margin:12px 0 4px}button,select{font:inherit;padding:8px;margin:3px 3px 3px 0}button{cursor:pointer}select{width:100%}meter{width:100%;height:20px}pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:180px;overflow:auto;padding:10px;margin:4px 0;background:white;border:1px solid #bbc9c8;border-radius:6px}small{color:#425456}summary{cursor:pointer;font-weight:600}p{margin:8px 0}
+</style>
+<h1>Macam Audio — Browser Audio Test</h1>
+<p><strong>Macam — Mac Audio Mirror.</strong> Mirror your Mac’s audio.</p>
+<p><button id="permission">1. Grant audio-input access</button><button id="refresh">Refresh devices</button><button id="connect">2. Connect Macam Audio</button><button id="stop">Stop</button></p>
+<label for="route">Test route</label>
+<select id="route" aria-label="Test route"><option value="">Choose a test route</option><option value="chrome-chrome">Chrome → Chrome</option><option value="safari-safari">Safari → Safari</option><option value="chrome-safari">Chrome → Safari</option><option value="safari-chrome">Safari → Chrome</option></select>
+<label for="devices">Audio input</label>
+<select id="devices" aria-label="Audio input"></select>
+<meter id="meter" min="-60" max="0" value="-60" aria-label="Input peak dBFS"></meter>
+<p>Open <a href="ToneSource.html" target="_blank" rel="noopener">the offline test-tone source</a> in the source browser. For a different browser, use Macam’s Browser Audio Tests menu. The route selector labels this test; it does not change Macam’s source settings.</p>
+<h2>Capture status</h2>
+<pre id="status" role="status">Stopped. Click Grant audio-input access, then Connect Macam Audio.</pre>
+<details open><summary>Browser devices and permissions — diagnostic text</summary>
+<pre id="devicesStatus" aria-label="Browser device diagnostics">Checking input permissions…</pre></details>
+<details><summary>Instructions and privacy</summary>
+<ol><li>Start Macam from its menu-bar icon. Leave Playback exclusion Off. Select Whole system or the source browser.</li><li>Play audio in Chrome or Safari, in a separate source tab. Source and receiver may use the same browser. Keep receiver input monitoring off.</li><li>Click Grant audio-input access, allow permission, select Macam Audio, and Connect.</li></ol>
+<p>This offline file sends no data and never plays captured audio. The permission button opens the browser’s current input without recording or monitoring it while you choose Macam Audio (at most 30 seconds). That track closes on Connect or Stop. It does not change the macOS default input. Actual test capture requires the specifically named Macam Audio device.</p>
+<p>Stopping Macam removes its device and ends the browser stream. This page tries reconnecting only to the same virtual input. Other websites may require reselecting the input or reloading.</p></details>
+<p><button id="record" disabled>Test 10-second browser recording</button><a id="download" hidden>Save test recording</a></p>
+<small>The optional recording stays in this page's memory until explicitly saved. Macam itself has no recording feature. Keep receiving-app input monitoring off.</small>
+<script>
+'use strict';
+let stream, bootstrap, bootstrapTimer, context, analysers, frame, recorder, recordingTimer, blobURL;
+let preferredId, wanted=false, busy=false, startTime, peakSeen=0, nonSilent=0;
+const $=id=>document.getElementById(id), show=s=>$('status').textContent=s;
+const isMacamName=label=>/^Macam Audio(?: \((?:Aggregate|Aggregate Device)\))?$/.test(label);
+const audioConstraints={channelCount:{ideal:2},sampleRate:{ideal:48000},echoCancellation:false,noiseSuppression:false,autoGainControl:false};
+function createAudioContext(){const Constructor=window.AudioContext||window.webkitAudioContext;if(!Constructor)throw Error('Web Audio is unavailable in this browser.');return new Constructor();}
+function closeBootstrap(){clearTimeout(bootstrapTimer);bootstrap?.getTracks().forEach(t=>t.stop());bootstrap=undefined;}
+async function devices(){
+ if(!navigator.mediaDevices)throw Error('Audio APIs are unavailable. Open this file directly in the browser, in a normal top-level tab.');
+ const all=await navigator.mediaDevices.enumerateDevices(), inputs=all.filter(d=>d.kind==='audioinput');
+ let permission='unavailable';try{permission=(await navigator.permissions.query({name:'microphone'})).state;}catch{}
+ const choices=inputs.filter(d=>d.deviceId);
+ const authorized=(stream||bootstrap)?.getAudioTracks().find(t=>t.readyState==='live'&&isMacamName(t.label));
+ if(authorized&&!choices.some(d=>isMacamName(d.label)))choices.push({label:authorized.label,deviceId:authorized.getSettings().deviceId||'authorized-live-macam',authorized:true});
+ const previous=$('devices').value;$('devices').replaceChildren();
+ for(const d of choices){
+  const option=document.createElement('option');option.value=d.deviceId;
+  option.textContent=d.label||'Input (grant access to reveal name)';option.dataset.macam=String(isMacamName(d.label));option.dataset.authorized=String(!!d.authorized);
+  $('devices').append(option);if(isMacamName(d.label)||d.deviceId===previous)option.selected=true;
+ }
+ if(!choices.length){const option=document.createElement('option');option.textContent='The browser exposes no audio inputs';option.value='';$('devices').append(option);}
+ $('devicesStatus').textContent=JSON.stringify({secureContext:isSecureContext,visibility:document.visibilityState,
+  userAgent:navigator.userAgent,route:$('route').value,
+  microphonePermission:permission,permissionStreamActive:!!bootstrap,
+  authorizedMacamTrack:authorized?{label:authorized.label,hasDeviceId:!!authorized.getSettings().deviceId}:null,
+  permissionTracks:bootstrap?.getAudioTracks().map(t=>({label:t.label,enabled:t.enabled,state:t.readyState}))||[],audioInputCount:inputs.length,
+  inputs:inputs.map(d=>({label:d.label||'(hidden)',hasDeviceId:!!d.deviceId}))},null,2);
+ return choices;
+}
+function releaseCapture(){
+ cancelAnimationFrame(frame);clearTimeout(recordingTimer);
+ if(recorder?.state==='recording')recorder.stop();
+ const old=stream;stream=undefined;old?.getTracks().forEach(t=>t.stop());
+ context?.close().catch(()=>{});context=undefined;$('record').disabled=true;$('meter').value=-60;
+}
+function stop(){wanted=false;releaseCapture();closeBootstrap();}
+function describeError(error){
+ return error.name+': '+error.message+(error.name==='NotAllowedError'?' — allow microphone access in the browser for this page and in macOS Privacy & Security → Microphone.':
+  error.name==='NotFoundError'||error.name==='OverconstrainedError'?' — start Macam, refresh devices, and select Macam Audio again.':'');
+}
+async function connectExact(id,authorizedStream,preparedContext){
+ if(busy){preparedContext?.close().catch(()=>{});return;}busy=true;
+ try{
+  const next=authorizedStream||await navigator.mediaDevices.getUserMedia({audio:{deviceId:{exact:id},...audioConstraints},video:false});
+  const track=next.getAudioTracks()[0];
+  if(!wanted||!isMacamName(track.label)){next.getTracks().forEach(t=>t.stop());if(wanted)throw Error('The browser opened a different input: '+track.label);return;}
+  if(stream===next){preparedContext?.close().catch(()=>{});return;}
+  if(bootstrap===next){clearTimeout(bootstrapTimer);bootstrap=undefined;}
+  releaseCapture();stream=next;preferredId=id==='authorized-live-macam'?undefined:(id||track.getSettings().deviceId);closeBootstrap();
+  track.onended=()=>{releaseCapture();if(wanted)show(preferredId?'Macam Audio disconnected. Waiting to reconnect specifically to Macam Audio.':'Macam Audio disconnected. The browser withheld its device ID; click Grant access again after starting Macam.');};
+  context=preparedContext||createAudioContext();await context.resume();const splitter=context.createChannelSplitter(2);
+  analysers=[context.createAnalyser(),context.createAnalyser()];analysers.forEach((a,i)=>{a.fftSize=2048;splitter.connect(a,i);});
+  // No connection to context.destination: input is never replayed.
+  context.createMediaStreamSource(next).connect(splitter);startTime=performance.now();peakSeen=0;nonSilent=0;
+  const data=analysers.map(a=>new Float32Array(a.fftSize)),settings=track.getSettings();
+  function tick(){
+   if(stream!==next)return;let peak=0,sum=0;const channelPeaks=[];
+   analysers.forEach((a,i)=>{a.getFloatTimeDomainData(data[i]);let cp=0;for(const v of data[i]){cp=Math.max(cp,Math.abs(v));sum+=v*v;}channelPeaks.push(cp);peak=Math.max(peak,cp);});
+   peakSeen=Math.max(peakSeen,peak);if(peak>1e-6)nonSilent++;$('meter').value=peak?Math.max(-60,20*Math.log10(peak)):-60;
+   show(JSON.stringify({route:$('route').value,device:track.label,settings,trackState:track.readyState,trackMuted:track.muted,
+    elapsedSeconds:((performance.now()-startTime)/1000).toFixed(1),peak,channelPeaks,rms:Math.sqrt(sum/(data[0].length*2)),
+    peakSeen,nonSilentMeterUpdates:nonSilent,nonSilentInputVerified:nonSilent>0},null,2));frame=requestAnimationFrame(tick);
+  }
+  $('record').disabled=typeof MediaRecorder==='undefined';tick();await devices();
+ }catch(error){preparedContext?.close().catch(()=>{});releaseCapture();show(describeError(error));if(error.name==='NotAllowedError')wanted=false;}
+ finally{busy=false;}
+}
+$('permission').onclick=async()=>{try{
+ closeBootstrap();const known=await devices();
+ if(known.some(d=>isMacamName(d.label))){show('Macam Audio is available. Click Connect Macam Audio.');return;}
+ show('Waiting for browser audio-input permission…');
+ bootstrap=await navigator.mediaDevices.getUserMedia({audio:audioConstraints,video:false});
+ // Retain a live track until enumeration and the explicit-device switch finish.
+ // Closing it first can revoke temporary permission and hide the device list.
+ // A disabled track can also hide device details with temporary permission.
+ // Keep it enabled and unconsumed until the exact-device switch, Stop, or timeout.
+ const inputs=await devices();show(inputs.some(d=>isMacamName(d.label))?'Choose Macam Audio, then Connect.':'Audio access is active but Macam Audio is missing. Start Macam, then Refresh devices.');
+ bootstrapTimer=setTimeout(()=>{closeBootstrap();if(!stream)show('Temporary input access expired. Click Grant audio-input access again, then Connect.');devices().catch(error=>show(describeError(error)));},30000);
+ }catch(error){closeBootstrap();show(describeError(error));}};
+$('refresh').onclick=async()=>{try{const inputs=await devices();if(!stream)show(inputs.some(d=>isMacamName(d.label))?'Macam Audio found. Click Connect.':inputs.length?'Macam Audio missing. Start Macam and refresh.':'The browser exposes no inputs. Grant access and check the browser/macOS microphone permission.');}catch(error){show(describeError(error));}};
+$('connect').onclick=async()=>{
+ const option=$('devices').selectedOptions[0];
+ if((!option||option.dataset.macam!=='true')&&!preferredId){show('Grant audio-input access, start Macam, and select the specifically named Macam Audio device.');return;}
+ wanted=true;const authorized=option?.dataset.authorized==='true'?(bootstrap||stream):undefined;
+ try{
+  // Resume synchronously from the click before waiting on microphone permission.
+  // Safari may otherwise suspend Web Audio until another user gesture.
+  const prepared=createAudioContext();await prepared.resume();
+  await connectExact(option?.dataset.macam==='true'?option.value:preferredId,authorized,prepared);
+ }catch(error){show(describeError(error));}
+};
+$('stop').onclick=()=>{stop();show('Stopped. All audio tracks closed.');devices().catch(()=>{});};
+$('record').onclick=()=>{try{
+ if(!stream)throw Error('Connect first');if(typeof MediaRecorder==='undefined')throw Error('This browser does not support MediaRecorder; input metering still works.');const chunks=[],signalAtStart=nonSilent;
+ const mime=['audio/webm;codecs=opus','audio/mp4'].find(type=>typeof MediaRecorder.isTypeSupported==='function'&&MediaRecorder.isTypeSupported(type));
+ const currentRecorder=mime?new MediaRecorder(stream,{mimeType:mime}):new MediaRecorder(stream);recorder=currentRecorder;
+ currentRecorder.ondataavailable=event=>{if(event.data.size)chunks.push(event.data);};
+ currentRecorder.onstop=()=>{const blob=new Blob(chunks,{type:currentRecorder.mimeType});if(blobURL)URL.revokeObjectURL(blobURL);blobURL=URL.createObjectURL(blob);$('download').href=blobURL;$('download').download='Macam-Audio-test.'+(blob.type.includes('mp4')?'m4a':'webm');$('download').textContent='Save test recording ('+blob.size+' bytes; '+(nonSilent>signalAtStart?'non-silent input measured':'no signal measured')+')';$('download').hidden=false;$('record').disabled=!stream;};
+ currentRecorder.start();$('record').disabled=true;recordingTimer=setTimeout(()=>{if(currentRecorder.state==='recording')currentRecorder.stop();},10000);
+ }catch(error){show(describeError(error));}};
+async function refreshAndReconnect(){
+ try{
+  const inputs=await devices();
+  if(wanted&&!stream&&!busy){const macam=inputs.find(d=>isMacamName(d.label)||(preferredId&&d.deviceId===preferredId));const id=macam?.deviceId||preferredId;if(id)await connectExact(id);}
+ }catch(error){$('devicesStatus').textContent=describeError(error);}
+}
+const reconnectTimer=setInterval(()=>{if(wanted&&document.visibilityState==='visible')refreshAndReconnect();},1500);
+if(navigator.mediaDevices)navigator.mediaDevices.addEventListener('devicechange',refreshAndReconnect);
+window.addEventListener('pagehide',()=>{clearInterval(reconnectTimer);stop();});
+devices().catch(error=>{show(describeError(error));$('devicesStatus').textContent=describeError(error);});
+</script></html>

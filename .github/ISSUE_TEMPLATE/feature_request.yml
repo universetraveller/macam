@@ -1,0 +1,17 @@
+name: Feature request
+description: Describe a use case and proposed behavior.
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Use case
+      description: What audio workflow should Macam support?
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Proposed behavior
+      description: Describe user-visible behavior and any playback, privacy, or installation implications.
+    validations:
+      required: true

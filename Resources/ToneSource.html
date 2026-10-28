@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'none'">
+<title>Macam — Browser Test Tone</title>
+<style>
+  body { font: 16px system-ui; max-width: 720px; margin: 32px auto; padding: 0 20px; line-height: 1.5; }
+  button { font: inherit; padding: 10px 16px; }
+  pre { white-space: pre-wrap; }
+</style>
+<h1>Macam — Browser Test Tone</h1>
+<p>Mirror your Mac’s audio.</p>
+<p>This offline source plays a quiet stereo tone through the current output:
+  left 440 Hz, right 660 Hz. It changes no system device or volume settings.</p>
+<p><button id="play">Play test tone</button> <button id="stop">Stop</button></p>
+<pre id="status" role="status">Stopped.</pre>
+<p>Keep this source tab separate from the receiving web app. Source and receiver
+  may be in Chrome or Safari, including two tabs in the same browser. Leave Macam’s
+  playback exclusion Off. Keep the receiver’s input monitoring off.</p>
+<p>The tone stops automatically after two minutes. This page uses no microphone,
+  network requests, downloads, or accounts.</p>
+<script>
+'use strict';
+let context, oscillators = [], stopTimer;
+function stop() {
+  clearTimeout(stopTimer);
+  oscillators.forEach(oscillator => oscillator.stop());
+  oscillators = [];
+  context?.close().catch(() => {});
+  context = undefined;
+  document.getElementById('status').textContent = 'Stopped.';
+}
+document.getElementById('play').onclick = async () => {
+  stop();
+  try {
+    const Constructor = window.AudioContext || window.webkitAudioContext;
+    if (!Constructor) throw Error('Web Audio is unavailable in this browser.');
+    context = new Constructor();
+    await context.resume();
+    const channels = context.createChannelMerger(2);
+    [440, 660].forEach((frequency, channel) => {
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+      oscillator.frequency.value = frequency;
+      gain.gain.value = 0.035;
+      oscillator.connect(gain);
+      gain.connect(channels, 0, channel);
+      oscillator.start();
+      oscillators.push(oscillator);
+    });
+    channels.connect(context.destination);
+    document.getElementById('status').textContent = 'Playing: left 440 Hz, right 660 Hz. Stops after two minutes.';
+    stopTimer = setTimeout(stop, 120000);
+  } catch (error) {
+    stop();
+    document.getElementById('status').textContent = error.message;
+  }
+};
+document.getElementById('stop').onclick = stop;
+window.addEventListener('pagehide', stop);
+</script>
+</html>

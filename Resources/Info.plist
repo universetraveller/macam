@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+    <key>CFBundleName</key><string>Macam</string>
+    <key>CFBundleDisplayName</key><string>Macam</string>
+    <key>CFBundleIdentifier</key><string>org.macam.Macam</string>
+    <key>CFBundleExecutable</key><string>Macam</string>
+    <key>CFBundlePackageType</key><string>APPL</string>
+    <key>CFBundleShortVersionString</key><string>0.2.0</string>
+    <key>CFBundleVersion</key><string>2</string>
+    <key>LSMinimumSystemVersion</key><string>14.2</string>
+    <key>LSUIElement</key><true/>
+    <key>LSMultipleInstancesProhibited</key><true/>
+    <key>NSPrincipalClass</key><string>NSApplication</string>
+    <key>NSHumanReadableCopyright</key><string>Macam contributors. GPL-3.0-only. No warranty.</string>
+    <key>NSAudioCaptureUsageDescription</key><string>Macam mirrors your Mac’s playing audio to Macam Audio so another application can record it. Original playback continues normally.</string>
+    <key>NSMicrophoneUsageDescription</key><string>Macam reads the Macam Audio virtual input to display its audio meter. It does not use your physical microphone.</string>
+    <key>NSHighResolutionCapable</key><true/>
+</dict></plist>

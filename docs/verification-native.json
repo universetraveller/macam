@@ -1,0 +1,36 @@
+{
+  "seconds": 120,
+  "sources": [
+    "com.apple.Safari"
+  ],
+  "receiver": {
+    "callbacks": 11250,
+    "elapsedSeconds": 120.0036119222641,
+    "frames": 5760000,
+    "interrupted": false,
+    "nonzeroSamples": 2770525,
+    "peak": 0,
+    "rms": 0,
+    "samples": 11520000,
+    "timestampDiscontinuities": 0
+  },
+  "owner": {
+    "callbacks": 11531,
+    "elapsedSeconds": 123.00241100788116,
+    "frames": 5903872,
+    "interrupted": false,
+    "nonzeroSamples": 2770525,
+    "peak": 0,
+    "rms": 0,
+    "samples": 11807744,
+    "timestampDiscontinuities": 0
+  },
+  "emptySelectionSilent": true,
+  "sigtermCleaned": true,
+  "crashLeftAggregate": true,
+  "journalRecoveryPassed": true,
+  "restartPassed": true,
+  "settingsUnchanged": true,
+  "browserVerified": false,
+  "physicalControlsVerified": false
+}

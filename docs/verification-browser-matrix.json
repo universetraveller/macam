@@ -1,0 +1,20 @@
+{
+  "date": "2026-10-27",
+  "macamVersion": "0.2.0",
+  "osVersion": "27.0.1",
+  "architecture": "arm64",
+  "browsers": {"Google Chrome": "156.0.8078.49", "Safari": "27.0.1"},
+  "method": "user-reported offline tone source and browser-neutral receiver checks",
+  "playbackExclusion": "off",
+  "captureScopePerRoute": "not separately recorded",
+  "routes": [
+    {"source": "Chrome", "receiver": "Chrome", "nonSilentInputVerified": true},
+    {"source": "Safari", "receiver": "Safari", "nonSilentInputVerified": true},
+    {"source": "Chrome", "receiver": "Safari", "nonSilentInputVerified": true},
+    {"source": "Safari", "receiver": "Chrome", "nonSilentInputVerified": true}
+  ],
+  "browserAutomationUsed": false,
+  "savedRecordingsVerified": false,
+  "multiHourDriftVerified": false,
+  "hostedCIExecuted": false
+}

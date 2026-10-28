@@ -1,0 +1,29 @@
+name: Bug report
+description: Report a reproducible Macam problem.
+body:
+  - type: input
+    id: environment
+    attributes:
+      label: Versions
+      description: Macam, macOS, architecture, and browser/application versions.
+    validations:
+      required: true
+  - type: textarea
+    id: route
+    attributes:
+      label: Audio route and settings
+      description: Source, receiver, selected applications/Whole system, and Playback exclusion setting.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction and expected behavior
+      description: Include whether the source, Macam, and receiver meters show signal.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Diagnostic results
+      description: Exact error, browser test report, or native test summary. Remove personal paths/device IDs. Do not attach private recordings.
