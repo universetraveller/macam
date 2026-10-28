@@ -99,11 +99,12 @@ first launch. If you trust the download, try opening it once, then go to
 **System Settings → Privacy & Security → Open Anyway** and confirm. See
 [Apple's opening instructions](https://support.apple.com/en-us/102445).
 
-To check a download, also download its `.zip.sha256` sidecar into the same folder:
+To check a download, also download its `.zip.sha256` sidecar into the same folder.
+Replace `<version>` and `<arch>` below with the values in the downloaded filename
+(the Apple Silicon architecture is `arm64`):
 
 ```sh
-# Replace 0.3.0 with the version you downloaded.
-shasum -a 256 -c Macam-0.3.0-arm64.zip.sha256
+shasum -a 256 -c "Macam-<version>-<arch>.zip.sha256"
 ```
 
 Updates are manual: quit, replace the app in Applications, and reopen it. Preferences
@@ -212,6 +213,33 @@ Maintainers: see [Preparing releases](docs/releasing.md) for version bumps, loca
 review packages, and the tag-triggered workflow that creates an **unpublished draft**.
 Release preparation requires Node.js for browser mocks and uses Python from
 Command Line Tools; it downloads no build dependencies.
+
+### Clean build caches
+
+Run cleanup commands from the repository root after any active build finishes.
+To clear the Swift/Clang module cache:
+
+```sh
+rm -rf -- .build/module-cache
+```
+
+The next build recreates it. This keeps the app, packages, downloaded references,
+and local verification reports.
+
+For a full clean, quit Macam first and save any local release archives or diagnostic
+reports you want to keep. Then remove all generated output and rebuild:
+
+```sh
+rm -rf -- .build
+./scripts/build.sh
+```
+
+The full clean removes the local app, compiler caches, packages, downloaded
+references, previews, and local verification reports. Source files, Git history,
+and the verification records committed under `docs/` remain available. Macam's
+preferences and macOS permissions are stored outside `.build`.
+
+### Native audio diagnostics
 
 With menu-bar capture stopped and a source playing, native diagnostics can verify
 independent input capture and unchanged device settings:

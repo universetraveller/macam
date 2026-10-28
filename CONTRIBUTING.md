@@ -25,6 +25,8 @@ contributions change the authorship mix. Upstream adaptations still need attribu
 For version bumps and distribution, follow [Preparing releases](docs/releasing.md).
 The local preparation command builds/tests and produces app/source assets and
 checksums; pushing a matching version tag prepares a GitHub draft for review.
+For compiler-cache cleanup or a full rebuild, see
+[Clean build caches](README.md#clean-build-caches).
 
 Use Swift/AppKit for the control path and small C functions for real-time work.
 Callbacks must not allocate, lock, log, query properties, dispatch work, or call UI

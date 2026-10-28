@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.1 — unreleased
+- Update all hardcoded entries in reusable instructions to use placeholders
+- Test releasing manually 
+
 ## 0.3.0 — 2026-10-28
 
 - Prepare a checksummed Homebrew cask with each release for a project-maintained

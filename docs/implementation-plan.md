@@ -62,6 +62,27 @@ No full Xcode application is required for the proposed implementation.
 
 ## Implementation status
 
+### Reusable release instructions and cache cleanup
+
+Updated release-command, checksum/download, and package-filename examples with
+explicit `<version>`, `<arch>`, and checkout-path placeholders. The operational
+Homebrew guide links to the latest release and the dated verification records
+rather than presenting an old tested version as permanently current. Preserve
+actual bundle metadata, changelog history, compatibility requirements, and archived
+test results. The maintainer will perform the next version bump; these edits must
+remain uncommitted and do not create a tag, push, or publish anything.
+
+Document the local compiler module cache at `.build/module-cache` and the distinct
+full `.build` cleanup, including quitting the local app and saving generated
+reports/releases before full removal. The initial size check found 269 MB of
+compiler cache in 304 MB of generated files. Do not remove files as part of this
+documentation update. The bump helper's error uses the version format rather than
+a concrete future example; the component preview uses a version placeholder, and
+invalid-version fixtures derive from the fixture's current metadata. Seven release
+tests and shell syntax checks for 20 documentation examples passed. The bundle
+version/build and changelog were confirmed unchanged; edits remain unstaged and
+uncommitted for maintainer review and the next version bump.
+
 ### Homebrew distribution
 
 Investigated current Homebrew policy and local Homebrew 7.0.11. Official

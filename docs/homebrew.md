@@ -4,7 +4,7 @@ Macam can be distributed at no cost through a project-maintained **third-party
 tap**, a small Git repository containing a cask recipe. It is independent of
 Homebrew's official package repositories. The
 [public tap](https://github.com/universetraveller/homebrew-tap) installs the
-published [Macam 0.3.0 release](https://github.com/universetraveller/macam/releases/tag/v0.3.0):
+published [Macam release](https://github.com/universetraveller/macam/releases/latest):
 
 ```sh
 brew install --cask universetraveller/tap/macam
@@ -16,11 +16,10 @@ ad-hoc releases are not eligible for that repository. A third-party tap keeps
 distribution free without requiring paid Apple Developer membership. It does not
 make the app notarized or remove macOS's first-launch approval requirement.
 
-The maintainer made `universetraveller/macam` public and authorized release/tap
-publication on 2026-10-28. The generated recipe uses that repository's public
-versioned release downloads. A draft release remains inaccessible to anonymous
-users until it is published. Local cask preparation never changes repository
-visibility or publishes a release on its own.
+The generated recipe uses public, versioned downloads from
+`universetraveller/macam`. A draft release remains inaccessible to anonymous users
+until it is published. Local cask preparation never changes repository visibility
+or publishes a release on its own.
 
 See Homebrew's [cask acceptance policy](https://docs.brew.sh/Acceptable-Casks),
 [tap guide](https://docs.brew.sh/How-to-Create-and-Maintain-a-Tap), and
@@ -70,9 +69,33 @@ unrelated applications, login services, drivers, or permissions are changed.
 
 ## Each new release
 
+In the commands below, replace `<version>` with the chosen release version, without
+the leading `v`, and `<tap-checkout>` with your local `homebrew-tap` checkout path.
+
 Publish the new version's reviewed app assets, then copy its generated `macam.rb`
 over the tap's `Casks/macam.rb`. Check the URL and checksum against the published
 ZIP and commit/push the tap update. Keep previous published assets unchanged.
+Use the recipe downloaded from the published release: CI's ZIP can differ from a
+local build, so the recipe from local preparation is not interchangeable with it.
+
+For example, save that exact published recipe into your tap checkout:
+
+```sh
+curl --fail --location \
+  "https://github.com/universetraveller/macam/releases/download/v<version>/macam.rb" \
+  --output "<tap-checkout>/Casks/macam.rb"
+cd "<tap-checkout>"
+git diff -- Casks/macam.rb
+```
+
+Review the new version, download URL, and SHA-256 before committing and pushing:
+
+```sh
+git add Casks/macam.rb
+git commit -m "Update Macam to <version>"
+git push origin HEAD
+```
+
 Users can then quit Macam and run:
 
 ```sh
@@ -91,15 +114,8 @@ operations. Quit removes Macam's temporary audio input through its normal cleanu
 
 ## Verification status
 
-The tag-triggered GitHub release workflow and Checks passed for 0.3.0. Anonymous
-download matched the reviewed ZIP checksum. Homebrew 7.0.11 installed the public
-cask into a temporary app directory and uninstalled it successfully. Its binary
-matched the release, strict signature verification passed, and quarantine remained
-present. The upgrade command recognized 0.3.0 as current; an upgrade between
-different versions has not yet been tested.
-
-Gatekeeper assessment rejected the ad-hoc build, as expected; no security override
-was performed and the first-launch UI approval remains a manual step. The temporary
-test installation was removed. The project tap and cask-specific trust entry remain
-available locally. See [verification.md](verification.md) and the
-[machine-readable release check](verification-release-0.3.json) for exact evidence.
+See [verification.md](verification.md) for dated release versions, CI results,
+public-download checks, Homebrew install/removal results, and linked machine-readable
+reports. Those records identify the versions actually tested; updating a recipe
+does not extend their results to a new version. Cross-version upgrades and
+first-launch UI approval remain separate checks.

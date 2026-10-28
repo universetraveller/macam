@@ -125,7 +125,7 @@ class ReleaseTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "identifier"):
             release.bundle_info(path)
         info["CFBundleIdentifier"] = "org.macam.Macam"
-        info["CFBundleShortVersionString"] = "0.3.0/bad"
+        info["CFBundleShortVersionString"] = f"{self.version}/bad"
         path.write_bytes(plistlib.dumps(info))
         with self.assertRaisesRegex(ValueError, "numeric"):
             release.bundle_info(path)
@@ -144,7 +144,7 @@ class ReleaseTests(unittest.TestCase):
         self.assertNotIn("LOCAL REVIEW ONLY", recipe)
         preview = release.homebrew_cask(self.root, self.version, checksum, "arm64", "14.2", True)
         self.assertTrue(preview.startswith("# LOCAL REVIEW ONLY"))
-        for version, digest, arch, minimum in (("v0.3.0", checksum, "arm64", "14.2"),
+        for version, digest, arch, minimum in ((f"v{self.version}", checksum, "arm64", "14.2"),
                 (self.version, "unknown", "arm64", "14.2"),
                 (self.version, checksum, "universal", "14.2"),
                 (self.version, checksum, "arm64", "15.0")):

@@ -118,7 +118,7 @@ def validate_tag(root, tag, version, commit):
 
 def bump(root, version):
     if not VERSION.fullmatch(version):
-        raise ValueError("Use a numeric X.Y.Z version, for example 0.4.0.")
+        raise ValueError("Use a numeric X.Y.Z version without the v prefix.")
     path = root / "Resources/Info.plist"
     info = bundle_info(path)
     old = info["CFBundleShortVersionString"]

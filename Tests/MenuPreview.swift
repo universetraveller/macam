@@ -54,7 +54,7 @@ import AppKit
             try save(root, name: name)
             withExtendedLifetime(window) {}
         }
-        let (alert, tools) = makeAboutAlert(version: "0.3.0", availableBrowsers: ["com.google.Chrome", "com.apple.Safari"])
+        let (alert, tools) = makeAboutAlert(version: "<version>", availableBrowsers: ["com.google.Chrome", "com.apple.Safari"])
         alert.accessoryView = nil
         let panel = NSView(frame: NSRect(x: 0, y: 0, width: 408, height: 390))
         panel.appearance = NSAppearance(named: .aqua)

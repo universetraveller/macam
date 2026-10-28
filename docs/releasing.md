@@ -6,6 +6,21 @@ prepares Apple Silicon (`arm64`) assets with an ad-hoc signature and **no
 notarization**. The runtime target is macOS 14.2+; tested systems and manual-check
 limits remain in [verification.md](verification.md).
 
+## Placeholders and version metadata
+
+Replace angle-bracketed placeholders before running the commands in this guide:
+
+| Placeholder | Meaning |
+| --- | --- |
+| `<version>` | The chosen numeric `X.Y.Z` version, without a leading `v` |
+| `<arch>` | The app archive's architecture; the current CI release target is `arm64` |
+
+The app version and integer build number live in `Resources/Info.plist`. The bump
+helper updates both and opens a new changelog section. Build/package scripts and
+CI derive their versions from that metadata; generic documentation examples do
+not need editing for each release. Keep historical changelog and verification
+versions tied to the releases they actually describe.
+
 ## Prepare the current version locally
 
 Use macOS with Command Line Tools, a macOS 26+ SDK, Git, and Node.js. Python 3 is
@@ -29,13 +44,13 @@ and ignored build output. Its notes and manifest explicitly mark the package as
 **local review only**. Commit the final changes and prepare again before publishing.
 The tool does not tag, push, upload, publish, or change the app version.
 
-Output is `.build/releases/v<version>/`, for example:
+Output is `.build/releases/v<version>/`:
 
 | File | Purpose |
 | --- | --- |
-| `Macam-0.3.0-arm64.zip` | Locally signed Macam.app for Apple Silicon |
-| `Macam-0.3.0-arm64.zip.sha256` | Check the app download on its own |
-| `Macam-0.3.0-source.tar.gz` | Matching GPL source, notices, documentation, and build scripts |
+| `Macam-<version>-<arch>.zip` | Locally signed Macam.app for the declared architecture |
+| `Macam-<version>-<arch>.zip.sha256` | Check the app download on its own |
+| `Macam-<version>-source.tar.gz` | Matching GPL source, notices, documentation, and build scripts |
 | `release-notes.md` | Changelog entry, installation, signing status, and verification limits |
 | `release-manifest.json` | Version/build, architecture, commit, worktree state, source fingerprint, toolchain, and hashes |
 | `macam.rb` | Homebrew cask pinned to the matching app ZIP and its SHA-256 |
@@ -51,18 +66,22 @@ binary-build guarantee**. The manifest does not claim a live audio test.
 Existing release directories are never overwritten. Move a previous local directory
 aside before preparing the same version again. `scripts/package.sh [--no-build]`
 remains a lightweight app-ZIP tool; use `prepare-release.sh` for a full release.
+For compiler-cache cleanup or removal of generated output, see
+[Clean build caches](../README.md#clean-build-caches). Cleaning is optional for a
+version bump: normal builds compile the app again and copy the current Info.plist.
 
 ## Each new version
 
 1. Bump the app version and integer build number, and start a changelog section:
 
    ```sh
-   xcrun python3 scripts/release.py bump 0.4.0
+   xcrun python3 scripts/release.py bump "<version>"
    ```
 
-   Use the next intended `X.Y.Z`, not the example literally. Fill in its new
-   `CHANGELOG.md` section; an empty section prevents preparation. Keep it marked
-   unreleased until publication. Commit the version, notes, and final source.
+   Fill in its new `CHANGELOG.md` section; an empty section prevents preparation.
+   Keep it marked unreleased until publication. Review the working tree and commit
+   the version, notes, and intended source/documentation changes. Release
+   preparation requires a clean worktree. Push that source commit before its tag.
 
 2. Quit Macam and run `./scripts/prepare-release.sh`. Check `SHA256SUMS`, read the
    generated notes/manifest, and test the extracted app. Record actual native and
@@ -72,8 +91,8 @@ remains a lightweight app-ZIP tool; use `prepare-release.sh` for a full release.
 3. When ready to prepare the hosted draft, create and push a matching tag yourself:
 
    ```sh
-   git tag -a v0.4.0 -m 'Macam 0.4.0'
-   git push origin v0.4.0
+   git tag -a "v<version>" -m "Macam <version>"
+   git push origin "v<version>"
    ```
 
    These commands are maintainer actions, not actions taken by the preparation
@@ -88,6 +107,12 @@ remains a lightweight app-ZIP tool; use `prepare-release.sh` for a full release.
    claims. Download and test the actual hosted ZIP. Publish the draft explicitly
    in GitHub when satisfied; update the changelog's release date afterward.
 
+5. Follow [Homebrew: Each new release](homebrew.md#each-new-release) to download
+   the published release's `macam.rb` into the shared tap, review its version and
+   checksum, and commit/push that separate repository. Use the cask from the
+   published CI assets, whose ZIP can differ from your local build. The Macam
+   tag workflow prepares the recipe; the tap update is a separate maintainer step.
+
 An existing release makes draft creation fail; the workflow does not replace its
 assets or publish it. Its prepared Actions artifact remains available. Review that
 artifact and the existing draft manually. Never silently replace a published
@@ -95,10 +120,15 @@ version; issue a new version for changed source. A draft/failed workflow is not
 a public download. Users need a published release asset.
 
 If GitHub automation is unavailable, prepare from committed source, create the
-matching tag, and run `./scripts/prepare-release.sh --tag v0.4.0`. Use GitHub's
-Releases interface to create a **draft** from that tag, attach every file from the
-version directory, and paste `release-notes.md` into its description. Review and
-publish separately.
+matching local tag, and run:
+
+```sh
+./scripts/prepare-release.sh --tag "v<version>"
+```
+
+Push the source and tag, then use GitHub's Releases interface to create a **draft**
+from that tag. Attach every file from `.build/releases/v<version>/`, and paste
+`release-notes.md` into its description. Review and publish separately.
 
 ## Signing and installation
 
