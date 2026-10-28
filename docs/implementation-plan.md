@@ -80,12 +80,19 @@ changing global tap/trust settings, or stripping quarantine. Document publicatio
 and upgrades. Do not advertise an install command as live until the public release
 and tap are available.
 
-The unauthenticated GitHub Releases API for `universetraveller/macam` returned 404;
-the maintainer confirmed that the repository is still private. There is no
-configured GitHub connector or `gh` executable in this workspace. Public download,
-live tap installation, and publication are unresolved external steps. A public tap
-cannot make the private release URL accessible. Repository visibility was not
-changed; public source/history publication needs a maintainer decision.
+The initial unauthenticated GitHub Releases API returned 404 while the repository
+was private. On 2026-10-28 the maintainer made `universetraveller/macam` public and
+explicitly authorized completing release and Homebrew publication. The public API
+now succeeds, and existing GitHub credentials authorize repository administration
+and pushes. There are no published releases or existing `homebrew-tap` repository.
+
+Complete publication in this order: commit the release date/status, create the
+matching version tag, let CI prepare its draft, verify the generated assets, publish
+the reviewed release, create the public tap with its exact cask/license, and verify
+a real Homebrew download/install/uninstall in a temporary app directory. Then update
+the README and verification records with actual public links/results. Keep app
+behavior and audio settings unchanged; preserve quarantine and report any launch
+block rather than overriding it.
 
 The generated recipe passed Ruby syntax and Homebrew 7.0.11's real content-loader
 DSL checks (version, checksum, URL, ARM requirement, Sonoma floor, app, uninstall
@@ -119,12 +126,12 @@ the existing C/Swift/browser mock suite, all asset checksums, and exact source/a
 comparison. The 0.3.0 package is a local review build marked as uncommitted source.
 See `docs/verification.md` for actual results and `docs/releasing.md` for usage.
 
-The tag-triggered GitHub workflow is prepared and its YAML parsed locally; a hosted
-run remains unverified. It requires a clean checkout and tag/version/HEAD agreement,
-builds on arm64, retains an artifact, and creates an unpublished draft. No repository
-tag, push, upload, or publication was performed here. Downloaded/quarantined launch
-behavior and clean CI execution remain release checks; local signature success does
-not establish Developer ID/notarization or older-macOS runtime compatibility.
+The general GitHub Checks workflow passed for the committed source (runs
+40637313073 and 40643290337). The tag-triggered release workflow still needs its
+first hosted run. It requires a clean checkout and tag/version/HEAD agreement,
+builds on arm64, retains an artifact, and creates an unpublished draft. Public
+download/install checks will follow explicit publication. Local signature success
+does not establish Developer ID/notarization or older-macOS runtime compatibility.
 
 ### README positioning refinement
 

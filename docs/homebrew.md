@@ -2,7 +2,8 @@
 
 Macam can be distributed at no cost through a project-maintained **third-party
 tap**, a small Git repository containing a cask recipe. It is independent of
-Homebrew's official package repositories. The current tap is **not published**.
+Homebrew's official package repositories. The first public release and tap are
+being prepared; use the README for the current installation status.
 
 The official `homebrew/cask` repository requires Gatekeeper-compatible Apple
 signing/notarization and applies additional acceptance/notability criteria. Our
@@ -10,13 +11,11 @@ ad-hoc releases are not eligible for that repository. A third-party tap keeps
 distribution free without requiring paid Apple Developer membership. It does not
 make the app notarized or remove macOS's first-launch approval requirement.
 
-The maintainer confirmed that the Macam repository is still private. A public
-tap pointing at its private GitHub release would fail to download. Before public
-distribution, choose whether to make the project repository public or host the
-app and matching GPL source snapshots in a separate public release repository.
-The current generated recipe targets `universetraveller/macam`; a separate release
-repository requires updating its URL/homepage template and release instructions.
-No repository visibility change is part of local cask preparation.
+The maintainer made `universetraveller/macam` public and authorized release/tap
+publication on 2026-10-28. The generated recipe uses that repository's public
+versioned release downloads. A draft release remains inaccessible to anonymous
+users until it is published. Local cask preparation never changes repository
+visibility or publishes a release on its own.
 
 See Homebrew's [cask acceptance policy](https://docs.brew.sh/Acceptable-Casks),
 [tap guide](https://docs.brew.sh/How-to-Create-and-Maintain-a-Tap), and
@@ -89,8 +88,7 @@ operations. Quit removes Macam's temporary audio input through its normal cleanu
 
 Local preparation and Ruby/DSL checks are recorded in
 [verification.md](verification.md). They do not establish a working public download
-or a successful Homebrew install/upgrade/uninstall. At the initial check, the public
-GitHub Releases API returned 404 for `universetraveller/macam`, and the maintainer
-confirmed it is private. Publication and an actual quarantined
-download test remain necessary. No tap, trust entry, or application installation
-was added during local recipe validation.
+or a successful Homebrew install/upgrade/uninstall. The initial local checks took
+place while the repository was private and added no tap, trust entry, or application
+installation. The repository is now public; publication and real download/install
+results are recorded separately as they are completed.

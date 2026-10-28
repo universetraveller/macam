@@ -1,7 +1,17 @@
 # Actual verification
 
-Test date: 2026-10-27. These are local results, not claims about every macOS
-version, website, protected content, or multi-hour recordings.
+Initial audio test date: 2026-10-27. Distribution checks also cover 2026-10-28.
+These results are not claims about every macOS version, website, protected content,
+or multi-hour recordings.
+
+## Public release preparation — 2026-10-28
+
+The maintainer made the repository public and authorized publication. Anonymous
+GitHub release-list access now succeeds and reports no releases yet. The existing
+Checks workflow passed for committed source (runs 40637313073 and 40643290337).
+The first tag-driven release run and actual public Homebrew installation are the
+next checks; results will be appended after those operations complete. The earlier
+local review/private-repository observations below remain historical evidence.
 
 ## Environment and build
 
@@ -56,11 +66,11 @@ checks for pinned cask metadata, invalid version/hash/architecture/minimum rejec
 and dirty-source review labeling. The recipe contains no flight hooks or quarantine
 override. Preparation includes it in the release's manifest and checksum set.
 
-The public GitHub Releases API returned 404. The maintainer confirmed the source
-repository is still private. No public tap/release was created, no repository was
+At the initial local check, the public GitHub Releases API returned 404 and the
+maintainer confirmed the repository was private. No public tap/release was created, no repository was
 made public, and no live Homebrew install/upgrade/uninstall or quarantined launch
 was verified. Those external steps remain open; a public tap cannot retrieve the
-current private release URL without authentication.
+then-private release URL without authentication.
 
 ### 0.3 exclusions, interface, and documentation
 
