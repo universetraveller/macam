@@ -1,0 +1,30 @@
+@REVIEW_COMMENT@cask "macam" do
+  version "@VERSION@"
+  sha256 "@SHA256@"
+
+  url "https://github.com/universetraveller/macam/releases/download/v#{version}/Macam-#{version}-@ARCH@.zip"
+  name "Macam"
+  desc "Mirror Mac audio to a stereo input while preserving original playback"
+  homepage "https://github.com/universetraveller/macam"
+
+  livecheck do
+    url :url
+    strategy :github_latest
+  end
+
+  depends_on arch: :@ARCH@
+  depends_on macos: :sonoma
+
+  app "Macam.app"
+
+  uninstall quit: "org.macam.Macam"
+
+  caveats <<~EOS
+    Requires macOS @MINIMUM_MACOS@ or later.
+    Macam is ad-hoc signed and not notarized.
+    If macOS blocks launch, try opening it once, then use
+    System Settings > Privacy & Security > Open Anyway if you trust the download.
+    Launch Macam manually and allow System Audio Recording when you click Start.
+    Quit Macam before upgrading. Preferences are preserved on uninstall.
+  EOS
+end

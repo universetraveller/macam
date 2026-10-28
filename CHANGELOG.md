@@ -2,6 +2,11 @@
 
 ## 0.3.0 — unreleased
 
+- Prepare a checksummed Homebrew cask with each release for a project-maintained
+  tap; document publication, upgrades, and the ad-hoc signing limitations.
+- Add release-download installation instructions and repeatable release preparation:
+  versioned app/source archives, checksums, release notes, provenance, and a
+  tag-triggered GitHub draft-release workflow.
 - Select multiple playback exclusions independently; Clear all restores Off.
 - Preserve explicit 0.2 exclusions on migration. Repeated `--exclude` flags add
   applications; `--exclude none` clears earlier selections.

@@ -62,6 +62,82 @@ No full Xcode application is required for the proposed implementation.
 
 ## Implementation status
 
+### Homebrew distribution
+
+Investigated current Homebrew policy and local Homebrew 7.0.11. Official
+`homebrew/cask` requires Apple signing/notarization and also applies public-interest
+criteria; the current ad-hoc build is not eligible. A project-maintained third-party
+tap is the zero-cost distribution path. Homebrew's local signing audit explicitly
+distinguishes unofficial taps; installation must still preserve quarantine and
+leave any first-launch approval to the user.
+
+Prepare a `macam.rb` cask with each release using the actual app ZIP SHA-256,
+architecture, version and OS minimum. Include it in the manifest/checksum set and
+mark uncommitted-source recipes as review-only. Use a separate conventional
+`homebrew-tap` repository for the eventual `universetraveller/tap/macam` package.
+Validate generated Ruby and the real Homebrew DSL without installing an app,
+changing global tap/trust settings, or stripping quarantine. Document publication
+and upgrades. Do not advertise an install command as live until the public release
+and tap are available.
+
+The unauthenticated GitHub Releases API for `universetraveller/macam` returned 404;
+the maintainer confirmed that the repository is still private. There is no
+configured GitHub connector or `gh` executable in this workspace. Public download,
+live tap installation, and publication are unresolved external steps. A public tap
+cannot make the private release URL accessible. Repository visibility was not
+changed; public source/history publication needs a maintainer decision.
+
+The generated recipe passed Ruby syntax and Homebrew 7.0.11's real content-loader
+DSL checks (version, checksum, URL, ARM requirement, Sonoma floor, app, uninstall
+quit action). Homebrew's OS dependency model covers major releases; the bundle and
+caveat retain the actual 14.2+ requirement. The recipe has no legacy Ruby flight
+hooks and does not strip quarantine. Seven release tests passed locally, including
+new cask metadata validation and dirty-review marking. These are local checks,
+not evidence of a published cask or a live install/upgrade.
+
+References: [acceptable casks](https://docs.brew.sh/Acceptable-Casks),
+[third-party taps](https://docs.brew.sh/How-to-Create-and-Maintain-a-Tap),
+[tap trust](https://docs.brew.sh/Tap-Trust),
+[cask DSL](https://docs.brew.sh/Cask-Cookbook).
+
+### Release preparation and download installation
+
+Implemented release-download installation in the README, including Apple Silicon
+assets, minimum OS, Applications placement, manual upgrades/uninstall, capture
+permissions, and Apple-linked guidance for ad-hoc/non-notarized launch blocks.
+Source builds remain a separate option; no hosted release is assumed to exist.
+
+`scripts/prepare-release.sh` runs the deterministic suite and fresh build, validates
+bundle/version consistency, and prepares the versioned app ZIP, matching GPL source
+snapshot, checksums, notes from CHANGELOG, and machine-readable provenance. It
+round-trips the app ZIP, checks the extracted signature/executable, and rejects
+source changes during preparation. `scripts/release.py bump X.Y.Z` updates app/build
+versions and starts an empty changelog section that must be filled before packaging.
+
+Local preparation passed on the M2 with CLT, including six release-invariant tests,
+the existing C/Swift/browser mock suite, all asset checksums, and exact source/archive
+comparison. The 0.3.0 package is a local review build marked as uncommitted source.
+See `docs/verification.md` for actual results and `docs/releasing.md` for usage.
+
+The tag-triggered GitHub workflow is prepared and its YAML parsed locally; a hosted
+run remains unverified. It requires a clean checkout and tag/version/HEAD agreement,
+builds on arm64, retains an artifact, and creates an unpublished draft. No repository
+tag, push, upload, or publication was performed here. Downloaded/quarantined launch
+behavior and clean CI execution remain release checks; local signature success does
+not establish Developer ID/notarization or older-macOS runtime compatibility.
+
+### README positioning refinement
+
+Moved practical advantages and comparisons ahead of the preview, feature list,
+and build instructions. Lead with unmuted parallel capture and unchanged system/app
+output routing. FineTune's inspected processing/replay path is cited directly;
+BlackHole's routing requirements are scoped to its workflows rather than asserting
+every user must change system defaults. Loopback's official documentation confirms
+that disabling “Mute when capturing” preserves app playback, so this is not claimed
+as unique to Macam. Macam's distinction there is the focused free/open-source
+workflow and its defaults. No comparative latency/fidelity claim or application
+behavior change was introduced.
+
 ### 0.3 multi-exclusion and interface refinement
 
 Requested: a set of optional playback exclusions, checkable independently, retaining

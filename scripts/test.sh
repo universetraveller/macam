@@ -15,6 +15,7 @@ if .build/Macam.app/Contents/MacOS/Macam --probe nan 2>/dev/null; then
     echo 'Invalid diagnostic duration was accepted' >&2; exit 1
 fi
 plutil -lint .build/Macam.app/Contents/Info.plist
+xcrun python3 -m unittest discover -s Tests -p '*Tests.py'
 if command -v node >/dev/null 2>&1; then
     node Tests/BrowserPageTests.cjs chromium
     node Tests/BrowserPageTests.cjs safari

@@ -18,6 +18,50 @@ audio tests ran outside it with authorization. Empty snapshots are rejected.
 
 ## Architecture conclusion
 
+### Release preparation and distribution
+
+The release preparation command passed locally on the environment above for
+0.3.0/build 3. It ran the complete deterministic suite: sanitized real-time meter
+tests, source/exclusion/migration tests, Chromium/Safari receiver mocks, tone-source
+mocks, signature/plist checks, and six Python release-invariant tests. Those new
+tests cover version/build updates, required version-scoped notes, source content
+and executable-mode preservation, deterministic source archives, unsafe symlinks,
+tag/version/commit agreement, bundle identity, and dirty-source rejection.
+
+Prepared `.build/releases/v0.3.0/` contains the arm64 app ZIP, app checksum sidecar,
+matching GPL source tarball, notes, manifest, and SHA256SUMS. All listed checksums
+passed. Extracting the app ZIP preserved the executable and passed strict signature
+verification. Reading every source archive entry reproduced the worktree snapshot
+and its recorded fingerprint, including license/notices and executable script modes.
+The default command correctly rejected uncommitted source; this local review used
+`--allow-dirty`, and notes/manifest explicitly record that state. It must be rebuilt
+from final committed source for publication.
+
+Release workflow YAML and shell syntax were checked locally. No GitHub-hosted run,
+tag creation, push, draft upload, or publication occurred. The app remains ad-hoc
+signed and not notarized. Gatekeeper behavior for a browser-downloaded, quarantined
+copy has not been tested. No new live audio/browser or physical-device checks were
+performed for these distribution-only changes; the dated results below still apply.
+
+### Homebrew cask preparation
+
+Homebrew 7.0.11 loaded the generated cask successfully through its actual
+`CaskLoader::FromContentLoader` without installing it or adding/trusting a tap.
+The loaded metadata matched version 0.3.0, the archive's actual SHA-256, the
+versioned GitHub download URL, arm64 restriction, Sonoma major-release floor,
+Macam.app artifact, and `org.macam.Macam` uninstall-quit target. The bundle/caveat
+retain the precise 14.2 minimum because Homebrew's OS dependency covers major
+releases. Ruby syntax passed. Seven release-invariant tests passed, including new
+checks for pinned cask metadata, invalid version/hash/architecture/minimum rejection,
+and dirty-source review labeling. The recipe contains no flight hooks or quarantine
+override. Preparation includes it in the release's manifest and checksum set.
+
+The public GitHub Releases API returned 404. The maintainer confirmed the source
+repository is still private. No public tap/release was created, no repository was
+made public, and no live Homebrew install/upgrade/uninstall or quarantined launch
+was verified. Those external steps remain open; a public tap cannot retrieve the
+current private release URL without authentication.
+
 ### 0.3 exclusions, interface, and documentation
 
 The multi-choice model and migration tests pass: exclusions combine as a union,

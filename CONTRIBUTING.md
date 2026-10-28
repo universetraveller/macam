@@ -22,6 +22,10 @@ images and verify native interactions as appropriate. The README records the
 current LLM-generated code provenance; keep that disclosure accurate when
 contributions change the authorship mix. Upstream adaptations still need attribution.
 
+For version bumps and distribution, follow [Preparing releases](docs/releasing.md).
+The local preparation command builds/tests and produces app/source assets and
+checksums; pushing a matching version tag prepares a GitHub draft for review.
+
 Use Swift/AppKit for the control path and small C functions for real-time work.
 Callbacks must not allocate, lock, log, query properties, dispatch work, or call UI
 or Objective-C APIs. Shared callback/UI state needs appropriate synchronization.
