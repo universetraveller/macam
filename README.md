@@ -210,7 +210,9 @@ Node.js is optional for building/running Macam and required for the JS mock test
 CI runs deterministic checks; it does not grant TCC or establish live browser capture.
 
 Maintainers: see [Preparing releases](docs/releasing.md) for version bumps, local
-review packages, and the tag-triggered workflow that creates an **unpublished draft**.
+review packages, and the tag-triggered workflow that **uploads the assets and
+creates an unpublished draft**. Review and publish that draft; manual uploads are
+only a fallback if automation is unavailable.
 Release preparation requires Node.js for browser mocks and uses Python from
 Command Line Tools; it downloads no build dependencies.
 

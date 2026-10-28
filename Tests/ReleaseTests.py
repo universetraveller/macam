@@ -70,6 +70,27 @@ class ReleaseTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "numeric"):
             release.bump(self.root, "v100.0.0")
 
+    def test_release_date_accepts_calendar_dates_and_local_review(self):
+        text = (self.root / "CHANGELOG.md").read_text()
+        self.assertIsNone(release.changelog_release_date(text, self.version))
+        dated = text.replace(f"{self.version} — unreleased", f"{self.version} — 2024-02-29")
+        self.assertEqual(release.changelog_release_date(dated, self.version), "2024-02-29")
+        for date in ("2023-02-29", "2024-02-30", "2024-2-29", "20240229", "", "prototype"):
+            with self.subTest(date=date), self.assertRaisesRegex(ValueError, "valid YYYY-MM-DD"):
+                release.changelog_release_date(text.replace(f"{self.version} — unreleased",
+                                                           f"{self.version} — {date}"), self.version)
+
+    def test_standard_and_tagged_preparation_reject_undated_source(self):
+        self.initialize_git()
+        args = argparse.Namespace(allow_dirty=False, tag=None)
+        with self.assertRaisesRegex(ValueError, "Finalize CHANGELOG"):
+            release.prepare(self.root, args)
+        tag = f"v{self.version}"
+        self.git("-c", "tag.gpgsign=false", "tag", tag)
+        args.allow_dirty, args.tag = True, tag
+        with self.assertRaisesRegex(ValueError, "Finalize CHANGELOG"):
+            release.prepare(self.root, args)
+
     def test_snapshot_tracks_worktree_and_preserves_source_modes(self):
         self.initialize_git()
         baseline = release.snapshot_hash(release.source_snapshot(self.root))

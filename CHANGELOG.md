@@ -1,6 +1,12 @@
 # Changelog
 
-## 0.3.1 — unreleased
+## 0.3.3 — 2026-10-28
+- Update the released date handling
+
+## 0.3.2 — 2026-10-28
+- Clarify the releasing documents
+
+## 0.3.1 — 2026-10-28
 - Update all hardcoded entries in reusable instructions to use placeholders
 - Test releasing manually 
 

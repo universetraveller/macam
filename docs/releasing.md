@@ -6,6 +6,19 @@ prepares Apple Silicon (`arm64`) assets with an ad-hoc signature and **no
 notarization**. The runtime target is macOS 14.2+; tested systems and manual-check
 limits remain in [verification.md](verification.md).
 
+## What happens locally and on GitHub
+
+| Action | Result |
+| --- | --- |
+| Run `./scripts/prepare-release.sh` | Build, test, and package locally under `.build/releases/v<version>/`; no upload |
+| Push the matching `v<version>` tag | GitHub Actions rebuilds from the tag, uploads the release assets, and creates a draft on the Releases page |
+| Publish that draft in GitHub | Make the release and its assets public |
+
+For the normal tag-driven workflow, **review and publish the existing draft**.
+The workflow attaches the app ZIP, matching source, checksums, notes, manifest,
+and cask for you. Manual uploads are only the
+[fallback when automation is unavailable](#manual-upload-fallback).
+
 ## Placeholders and version metadata
 
 Replace angle-bracketed placeholders before running the commands in this guide:
@@ -14,6 +27,7 @@ Replace angle-bracketed placeholders before running the commands in this guide:
 | --- | --- |
 | `<version>` | The chosen numeric `X.Y.Z` version, without a leading `v` |
 | `<arch>` | The app archive's architecture; the current CI release target is `arm64` |
+| `<release-date>` | The intended UTC publication date, formatted as `YYYY-MM-DD` |
 
 The app version and integer build number live in `Resources/Info.plist`. The bump
 helper updates both and opens a new changelog section. Build/package scripts and
@@ -31,7 +45,8 @@ building. Run from the repository root:
 ./scripts/prepare-release.sh
 ```
 
-The default requires committed source. For reviewing current, uncommitted work:
+The default requires committed source and a valid date on the target version's
+changelog heading. For reviewing uncommitted work or an unreleased changelog:
 
 ```sh
 git status --short
@@ -41,8 +56,11 @@ git status --short
 Review mode includes tracked files and nonignored additions from the worktree,
 including documentation; review that list before packaging. It excludes `.git`
 and ignored build output. Its notes and manifest explicitly mark the package as
-**local review only**. Commit the final changes and prepare again before publishing.
-The tool does not tag, push, upload, publish, or change the app version.
+**local review only**. Finalize the changelog date, commit the final changes, and
+prepare again without `--allow-dirty` before publishing.
+The local tool does not tag, push, upload, publish, or change the app version.
+The GitHub workflow runs that tool separately after a tag push and then uploads
+its CI-built results; those are the assets attached to the automatic draft.
 
 Output is `.build/releases/v<version>/`:
 
@@ -79,9 +97,11 @@ version bump: normal builds compile the app again and copy the current Info.plis
    ```
 
    Fill in its new `CHANGELOG.md` section; an empty section prevents preparation.
-   Keep it marked unreleased until publication. Review the working tree and commit
-   the version, notes, and intended source/documentation changes. Release
-   preparation requires a clean worktree. Push that source commit before its tag.
+   While developing, keep it marked unreleased. Before release preparation and
+   tagging, replace that label with the intended UTC publication date; see
+   [Changelog release date](#changelog-release-date). Review and commit the version,
+   dated notes, and intended source/documentation changes. Release preparation
+   requires a clean worktree. Push that source commit before its tag.
 
 2. Quit Macam and run `./scripts/prepare-release.sh`. Check `SHA256SUMS`, read the
    generated notes/manifest, and test the extracted app. Record actual native and
@@ -99,13 +119,24 @@ version bump: normal builds compile the app again and copy the current Info.plis
    script. The [release workflow](../.github/workflows/release.yml) runs on version
    tag pushes. It checks tag/version/HEAD agreement, rebuilds/tests on an arm64
    macOS runner, retains the assets for 14 days as an Actions artifact, then creates
-   a **draft GitHub release** using `gh release create --draft --verify-tag`.
+   a **draft GitHub release** on the Releases page using
+   `gh release create --draft --verify-tag`. It automatically uploads all files
+   listed in the output table above. Wait for the workflow to finish and confirm
+   those assets are attached before publishing. Local preparation alone does not
+   create the GitHub draft.
    The build job has read access; only the draft job has repository-content write
    access. No extra signing secrets or personal access token are needed.
 
-4. Review the draft's app/source assets, checksums, signing caveat, and verification
-   claims. Download and test the actual hosted ZIP. Publish the draft explicitly
-   in GitHub when satisfied; update the changelog's release date afterward.
+4. Open the existing draft on GitHub's Releases page. Review its app/source assets,
+   checksums, signing caveat, and verification claims. Download and test the actual
+   hosted ZIP, then click **Publish release** when satisfied. No manual asset upload
+   is needed after a successful workflow. Do not replace its CI assets with local
+   packages, whose ZIP/checksum can differ. If assets are missing, inspect the
+   workflow's status/logs before publishing.
+
+   The tag and its source archive already contain the dated changelog entry.
+   If the publication date changes during review, correct the source and regenerate
+   the unpublished draft before publishing it.
 
 5. Follow [Homebrew: Each new release](homebrew.md#each-new-release) to download
    the published release's `macam.rb` into the shared tap, review its version and
@@ -119,16 +150,63 @@ artifact and the existing draft manually. Never silently replace a published
 version; issue a new version for changed source. A draft/failed workflow is not
 a public download. Users need a published release asset.
 
-If GitHub automation is unavailable, prepare from committed source, create the
-matching local tag, and run:
+## Changelog release date
+
+During development, leave the heading as:
+
+```markdown
+## <version> — unreleased
+```
+
+Before committing the final release source and creating its tag, replace
+`unreleased` with the intended UTC publication date, formatted as `YYYY-MM-DD`:
+
+```markdown
+## <version> — <release-date>
+```
+
+Commit the dated entry with the release source, then prepare and tag that commit.
+The source archive is a snapshot of the tagged files; updating only the main branch
+afterward cannot change a downloaded archive. The date is also recorded in generated
+release notes and the manifest. Standard preparation and tagged CI builds reject
+an unreleased or invalid target-version date. Only explicit local review through
+`--allow-dirty` permits an unreleased entry, and those assets are marked review-only.
+
+Use the date you intend to publish. If publication is postponed to another UTC
+day, update the date and regenerate the unpublished draft from corrected source.
+Once a version is public, preserve its tag and assets; later documentation edits
+must not silently replace the source users already downloaded.
+
+### Existing unpublished draft with an unreleased entry
+
+Keep that draft unpublished. Finalize the date, commit and push the corrected
+source, then regenerate the draft and its complete asset set from that commit.
+Changing only the release description or main-branch changelog does not repair
+the source archive already attached to the draft.
+
+For a version that has **never been published**, the maintainer can remove its
+draft and recreate its unpublished tag at the corrected commit, then push that tag
+to rerun the workflow. Move aside any old local release output before preparing
+again. If the version has already been public, preserve it and use a new version
+for changed release artifacts instead. Do not mix old and rebuilt asset sets.
+
+## Manual upload fallback
+
+Use this only if GitHub automation cannot build/upload the release. If a successful
+workflow already created a complete draft, use it instead. For a manual release,
+prepare from committed source, create the matching local tag, and run:
 
 ```sh
 ./scripts/prepare-release.sh --tag "v<version>"
 ```
 
 Push the source and tag, then use GitHub's Releases interface to create a **draft**
-from that tag. Attach every file from `.build/releases/v<version>/`, and paste
-`release-notes.md` into its description. Review and publish separately.
+from that tag, or edit its existing incomplete draft. Attach a complete, consistent
+set of files from `.build/releases/v<version>/`, and paste `release-notes.md` into
+its description. Keep app/source, manifest, cask, and checksum files from the same
+preparation; mixing local and CI outputs can produce checksum mismatches. The
+source must already contain its dated changelog entry. Review and publish
+separately.
 
 ## Signing and installation
 

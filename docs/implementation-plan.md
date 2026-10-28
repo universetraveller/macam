@@ -62,6 +62,31 @@ No full Xcode application is required for the proposed implementation.
 
 ## Implementation status
 
+### Changelog dates and automatic draft clarification
+
+Clarified the operational release guide after the maintainer observed the automatic
+draft: local preparation only writes local files, while a tag push triggers the
+GitHub workflow's build, asset upload, and draft creation. The primary path reviews
+and publishes that existing draft; manual upload is now a separately headed
+fallback. Warn against mixing CI and local ZIP/cask/checksum sets.
+
+Corrected the earlier date-after-publication proposal: a later main-branch edit
+cannot change a source archive built from a tag, leaving its heading unreleased.
+Finalize the target entry's UTC date before the release commit and tag instead.
+Standard preparation and tagged CI now reject an unreleased target heading or
+invalid calendar date. `--allow-dirty` remains an explicit local review path;
+undated output is marked review-only in its notes, cask, and manifest. The manifest
+and notes include the release date. An existing unpublished draft needs corrected
+source and a regenerated tag/draft asset set; published versions remain immutable.
+
+The guide still distinguishes automatic uploads from the manual fallback. No
+maintainer version/changelog files, tags, commits, or remote releases are changed
+by this fix. The code, tests, and documentation edits remain uncommitted.
+Nine release tests passed, including valid leap-day parsing, invalid calendar/date
+formats, rejection of clean undated preparation, and rejection of tagged undated
+preparation even when local-review permission is supplied. Native audio behavior
+and app compilation were not exercised for this release-tooling change.
+
 ### Reusable release instructions and cache cleanup
 
 Updated release-command, checksum/download, and package-filename examples with

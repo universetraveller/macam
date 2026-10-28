@@ -47,6 +47,23 @@ def changelog_notes(text, version):
     raise ValueError(f"Missing CHANGELOG.md entry for {version}.")
 
 
+def changelog_release_date(text, version):
+    for section in re.split(r"(?m)^## ", text)[1:]:
+        heading = section.partition("\n")[0]
+        name, _, label = heading.partition(" — ")
+        if name != version:
+            continue
+        if label == "unreleased":
+            return None
+        if re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", label):
+            try:
+                return datetime.date.fromisoformat(label).isoformat()
+            except ValueError:
+                pass
+        raise ValueError(f"CHANGELOG.md's {version} heading needs unreleased or a valid YYYY-MM-DD date.")
+    raise ValueError(f"Missing CHANGELOG.md entry for {version}.")
+
+
 def source_snapshot(root):
     # Tracked files plus explicitly opted-in, nonignored worktree additions.
     listing = subprocess.check_output(
@@ -91,7 +108,7 @@ def sha256(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def homebrew_cask(root, version, checksum, arch, minimum_macos, dirty):
+def homebrew_cask(root, version, checksum, arch, minimum_macos, review_only):
     if not VERSION.fullmatch(version) or not re.fullmatch(r"[0-9a-f]{64}", checksum):
         raise ValueError("Homebrew requires a numeric version and an actual ZIP SHA-256.")
     if arch not in ("arm64", "x86_64"):
@@ -101,7 +118,7 @@ def homebrew_cask(root, version, checksum, arch, minimum_macos, dirty):
     template = (root / "packaging/homebrew/macam.rb.in").read_text()
     values = {"VERSION": version, "SHA256": checksum, "ARCH": arch,
               "MINIMUM_MACOS": minimum_macos,
-              "REVIEW_COMMENT": "# LOCAL REVIEW ONLY: uncommitted source; do not publish this cask.\n" if dirty else ""}
+              "REVIEW_COMMENT": "# LOCAL REVIEW ONLY: not a finalized release; do not publish this cask.\n" if review_only else ""}
     for key, value in values.items():
         template = template.replace(f"@{key}@", value)
     if re.search(r"@[A-Z_]+@", template):
@@ -149,13 +166,19 @@ def bump(root, version):
 def prepare(root, args):
     info = bundle_info(root / "Resources/Info.plist")
     version = info["CFBundleShortVersionString"]
-    notes = changelog_notes((root / "CHANGELOG.md").read_text(), version)
+    changelog = (root / "CHANGELOG.md").read_text()
+    notes = changelog_notes(changelog, version)
+    release_date = changelog_release_date(changelog, version)
     commit = run("git", "rev-parse", "HEAD", root=root)
     dirty = bool(run("git", "status", "--porcelain", "--untracked-files=all", root=root))
     if dirty and (not args.allow_dirty or args.tag):
         raise ValueError("Commit source changes first, or use --allow-dirty for local review only.")
     if args.tag:
         validate_tag(root, args.tag, version, commit)
+    if release_date is None and (not args.allow_dirty or args.tag):
+        raise ValueError(f"Finalize CHANGELOG.md's {version} release date as YYYY-MM-DD before "
+                         "release preparation/tagging. Use --allow-dirty only for local review.")
+    review_only = dirty or release_date is None
     files = source_snapshot(root)
     fingerprint = snapshot_hash(files)
     destination = root / ".build/releases" / f"v{version}"
@@ -163,8 +186,8 @@ def prepare(root, args):
         raise ValueError(f"{destination} already exists. Move it aside before preparing again.")
     if shutil.which("node") is None:
         raise ValueError("Install Node.js to include browser logic tests in release verification.")
-    if dirty:
-        print("Preparing a LOCAL REVIEW package from uncommitted files; do not publish it.", flush=True)
+    if review_only:
+        print("Preparing a LOCAL REVIEW package: source or changelog is not finalized; do not publish it.", flush=True)
     # Always rebuild; a valid signature alone cannot establish source/binary correspondence.
     subprocess.run(["./scripts/test.sh"], cwd=root, check=True)
     built = bundle_info(root / ".build/Macam.app/Contents/Info.plist")
@@ -189,15 +212,16 @@ def prepare(root, args):
         app_zip = stage / app_name
         shutil.copyfile(root / ".build" / app_name, app_zip)
         (stage / "macam.rb").write_text(homebrew_cask(
-            root, version, sha256(app_zip), arch, info["LSMinimumSystemVersion"], dirty))
+            root, version, sha256(app_zip), arch, info["LSMinimumSystemVersion"], review_only))
         subprocess.run(["/usr/bin/ruby", "-c", str(stage / "macam.rb")], check=True)
         source_name = f"Macam-{version}-source.tar.gz"
         write_source(stage / source_name, version, files)
-        warning = ("**Local review only: contains uncommitted source changes. Do not publish.**\n\n"
-                   if dirty else "")
+        warning = ("**Local review only: source or changelog is not finalized. Do not publish.**\n\n"
+                   if review_only else "")
         label = "Apple Silicon" if arch == "arm64" else "Intel (runtime unverified)"
         release_notes = (
-            f"# Macam {version} — Mac Audio Mirror\n\nMirror your Mac’s audio.\n\n{warning}"
+            f"# Macam {version} — Mac Audio Mirror\n\nMirror your Mac’s audio.\n\n"
+            f"Release date: {release_date or 'unreleased (local review)'}\n\n{warning}"
             f"{notes}\n\n"
             f"## Download and install\n\n"
             f"Download **{app_name}** for **{label}**. Requires macOS "
@@ -244,6 +268,7 @@ def prepare(root, args):
             "architecture": arch, "minimumMacOS": info["LSMinimumSystemVersion"],
             "preparedAtUTC": datetime.datetime.now(datetime.timezone.utc).isoformat(),
             "gitCommit": commit, "tag": args.tag, "dirtyWorktree": dirty,
+            "releaseDate": release_date, "reviewOnly": review_only,
             "sourceSnapshotSHA256": fingerprint,
             "signing": {"kind": "ad-hoc", "notarized": False},
             "buildHost": run("sw_vers", "-productVersion", root=root),
@@ -269,7 +294,7 @@ def main():
     bump_parser = commands.add_parser("bump", help="Bump app/build versions and open a changelog section")
     bump_parser.add_argument("version")
     prepare_parser = commands.add_parser("prepare", help="Build/test and prepare local release assets")
-    prepare_parser.add_argument("--allow-dirty", action="store_true", help="Local review only; include nonignored uncommitted files")
+    prepare_parser.add_argument("--allow-dirty", action="store_true", help="Local review only; allow uncommitted source or an unreleased changelog")
     prepare_parser.add_argument("--tag", help="Require clean source and a matching tag at HEAD (used by CI)")
     args = parser.parse_args()
     try:
