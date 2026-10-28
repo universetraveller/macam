@@ -2,8 +2,13 @@
 
 Macam can be distributed at no cost through a project-maintained **third-party
 tap**, a small Git repository containing a cask recipe. It is independent of
-Homebrew's official package repositories. The first public release and tap are
-being prepared; use the README for the current installation status.
+Homebrew's official package repositories. The
+[public tap](https://github.com/universetraveller/homebrew-tap) installs the
+published [Macam 0.3.0 release](https://github.com/universetraveller/macam/releases/tag/v0.3.0):
+
+```sh
+brew install --cask universetraveller/tap/macam
+```
 
 The official `homebrew/cask` repository requires Gatekeeper-compatible Apple
 signing/notarization and applies additional acceptance/notability criteria. Our
@@ -33,10 +38,10 @@ See Homebrew's [cask acceptance policy](https://docs.brew.sh/Acceptable-Casks),
    app name, minimum macOS requirement, uninstall-quit action, and launch guidance.
    A recipe marked LOCAL REVIEW ONLY must be regenerated from committed source.
 
-3. Create a public GitHub repository named `universetraveller/homebrew-tap`.
-   Add the recipe at `Casks/macam.rb` and a README identifying it as Macam's
-   project-maintained tap. Include Macam's GPL-3.0-only license for the recipe.
-   Commit and push the reviewed files. No Apple signing credentials are needed.
+3. Update `Casks/macam.rb` in the existing public
+   `universetraveller/homebrew-tap` repository. Keep its project-maintained tap
+   README and GPL-3.0-only license with the recipe. Commit and push the reviewed
+   files. No Apple signing credentials are needed.
 
 4. Test the **published** tap and app download before advertising installation:
 
@@ -86,9 +91,15 @@ operations. Quit removes Macam's temporary audio input through its normal cleanu
 
 ## Verification status
 
-Local preparation and Ruby/DSL checks are recorded in
-[verification.md](verification.md). They do not establish a working public download
-or a successful Homebrew install/upgrade/uninstall. The initial local checks took
-place while the repository was private and added no tap, trust entry, or application
-installation. The repository is now public; publication and real download/install
-results are recorded separately as they are completed.
+The tag-triggered GitHub release workflow and Checks passed for 0.3.0. Anonymous
+download matched the reviewed ZIP checksum. Homebrew 7.0.11 installed the public
+cask into a temporary app directory and uninstalled it successfully. Its binary
+matched the release, strict signature verification passed, and quarantine remained
+present. The upgrade command recognized 0.3.0 as current; an upgrade between
+different versions has not yet been tested.
+
+Gatekeeper assessment rejected the ad-hoc build, as expected; no security override
+was performed and the first-launch UI approval remains a manual step. The temporary
+test installation was removed. The project tap and cask-specific trust entry remain
+available locally. See [verification.md](verification.md) and the
+[machine-readable release check](verification-release-0.3.json) for exact evidence.

@@ -1,0 +1,61 @@
+{
+  "verifiedAtUTC": "2026-10-28T06:46:24.007974+00:00",
+  "version": "0.3.0",
+  "sourceCommit": "e8f65274a1873ca6e166aaa13f9e073747395315",
+  "tag": "v0.3.0",
+  "releaseURL": "https://github.com/universetraveller/macam/releases/tag/v0.3.0",
+  "releasePublished": true,
+  "releaseWorkflow": {
+    "id": 40644355696,
+    "conclusion": "success"
+  },
+  "tagChecksWorkflow": {
+    "id": 40644355694,
+    "conclusion": "success"
+  },
+  "releaseAssets": {
+    "allChecksumsVerified": true,
+    "signatureVerified": true,
+    "sourceMatchesTag": true,
+    "dirtyWorktree": false,
+    "anonymousAppDownloadSHA256": "7f21003f02780e0d705f402a7b99dec79c71b659c68adb43951d188bc5dc745d",
+    "buildHostMacOS": "26.6.2",
+    "sdkVersion": "26.5",
+    "swiftVersion": "Apple Swift version 6.3.3 (swiftlang-6.3.3.1.3 clang-2100.1.1.101)\nTarget: arm64-apple-macosx26.0",
+    "signing": {
+      "kind": "ad-hoc",
+      "notarized": false
+    }
+  },
+  "tap": {
+    "url": "https://github.com/universetraveller/homebrew-tap",
+    "commit": "d255d600baf7c7c392acb3d6fb804414a64236b5",
+    "recipeMatchesReleaseAsset": true
+  },
+  "homebrew": {
+    "version": "7.0.11",
+    "installCommand": "brew install --cask --appdir=<temporary-folder> universetraveller/tap/macam",
+    "installPassed": true,
+    "installedApp": {
+      "version": "0.3.0",
+      "bundleIdentifier": "org.macam.Macam",
+      "binaryMatchesRelease": true,
+      "strictSignatureVerified": true,
+      "quarantinePresent": true
+    },
+    "upgradeCheck": "Latest version already installed",
+    "crossVersionUpgradeVerified": false,
+    "uninstallPassed": true,
+    "temporaryAppRemoved": true,
+    "caskroomEntryRemoved": true,
+    "projectTapRetainedLocally": true,
+    "caskSpecificTrustRetainedLocally": true
+  },
+  "gatekeeper": {
+    "exitCode": 3,
+    "assessment": ".build/homebrew-install/Macam.app: rejected",
+    "firstLaunchUIApprovalVerified": false,
+    "securityOverridePerformed": false
+  },
+  "newLiveAudioOrBrowserTestsDuringPublication": false
+}

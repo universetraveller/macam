@@ -62,14 +62,20 @@ Capture uses an unmuted Core Audio process tap and a temporary public aggregate 
 
 ## Install
 
-### Homebrew (publication pending)
+### Homebrew
 
-A project-maintained Homebrew tap is being prepared. Each release package includes
-a `macam.rb` recipe pinned to that release's app ZIP and SHA-256. See
-[Homebrew distribution](docs/homebrew.md) for setup and publication steps.
-The tap is **not live yet**; use a published release download or build from source.
-Homebrew installation will retain the same first-launch approval requirement as
-the downloaded app. No paid Apple Developer membership is required for our tap.
+```sh
+brew install --cask universetraveller/tap/macam
+```
+
+Uses Macam's [project-maintained tap](https://github.com/universetraveller/homebrew-tap)
+and checksummed release download. Requires Apple Silicon and macOS 14.2+.
+The app is ad-hoc signed and not notarized; the first-launch approval described
+below also applies to Homebrew installation. No developer tools or paid account
+are needed.
+
+Quit Macam before upgrading with `brew upgrade --cask universetraveller/tap/macam`.
+See [Homebrew distribution](docs/homebrew.md) for maintenance and uninstall steps.
 
 ### Download a release
 
@@ -86,7 +92,7 @@ the downloaded app. No paid Apple Developer membership is required for our tap.
 No developer tools, separate driver, or installer service are needed for the
 prebuilt app. It requires **macOS 14.2+**; recorded runtime checks currently cover
 Apple Silicon on macOS 27.0.1. Intel prebuilt releases are not currently prepared.
-If no published release asset is available yet, build from source below.
+Source builds are also available below.
 
 Current packages are **ad-hoc signed and not notarized**. macOS may block the
 first launch. If you trust the download, try opening it once, then go to

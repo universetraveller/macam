@@ -4,13 +4,34 @@ Initial audio test date: 2026-10-27. Distribution checks also cover 2026-10-28.
 These results are not claims about every macOS version, website, protected content,
 or multi-hour recordings.
 
-## Public release preparation — 2026-10-28
+## Public release and Homebrew — 2026-10-28
 
-The maintainer made the repository public and authorized publication. Anonymous
-GitHub release-list access now succeeds and reports no releases yet. The existing
-Checks workflow passed for committed source (runs 40637313073 and 40643290337).
-The first tag-driven release run and actual public Homebrew installation are the
-next checks; results will be appended after those operations complete. The earlier
+The maintainer made the repository public and authorized publication. The first
+public release and Homebrew distribution are now complete:
+
+- Release workflow [40644355696](https://github.com/universetraveller/macam/actions/runs/40644355696)
+  and tag Checks [40644355694](https://github.com/universetraveller/macam/actions/runs/40644355694)
+  passed for tagged source `e8f65274a1873ca6e166aaa13f9e073747395315`.
+- [Macam 0.3.0](https://github.com/universetraveller/macam/releases/tag/v0.3.0)
+  is public. Every draft asset's checksum, bundle signature/metadata, cask, clean
+  manifest, and exact source snapshot were verified before publication. The CI
+  build used macOS 26.6.2, SDK 26.5 and Swift 6.3.3.
+- Anonymous download reproduced app ZIP SHA-256
+  `7f21003f02780e0d705f402a7b99dec79c71b659c68adb43951d188bc5dc745d`.
+- The [public tap](https://github.com/universetraveller/homebrew-tap) contains that
+  exact cask with its GPL license and README. Homebrew 7.0.11 installed it in
+  `.build/homebrew-install`, verified its download, and removed it successfully.
+  The installed binary matched the release and passed strict signature verification.
+- Quarantine remained present. Gatekeeper assessment returned exit 3 and
+  `rejected`, expected for this ad-hoc/non-notarized app. No opening override or
+  security-setting change was performed; first-launch UI approval remains manual.
+- `brew upgrade --cask universetraveller/tap/macam` reported the latest version
+  was already installed. This checks current-version detection, not a cross-version
+  upgrade. The temporary app/Caskroom installation was removed, and the existing
+  local build reopened. The new project tap/cask-specific trust entry remain locally.
+
+See [verification-release-0.3.json](verification-release-0.3.json). No new live
+audio/browser or physical-device checks were made during publication. The earlier
 local review/private-repository observations below remain historical evidence.
 
 ## Environment and build

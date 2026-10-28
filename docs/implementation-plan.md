@@ -84,15 +84,25 @@ The initial unauthenticated GitHub Releases API returned 404 while the repositor
 was private. On 2026-10-28 the maintainer made `universetraveller/macam` public and
 explicitly authorized completing release and Homebrew publication. The public API
 now succeeds, and existing GitHub credentials authorize repository administration
-and pushes. There are no published releases or existing `homebrew-tap` repository.
+and pushes. At the start of publication there were no public releases or existing
+`homebrew-tap` repository.
 
-Complete publication in this order: commit the release date/status, create the
-matching version tag, let CI prepare its draft, verify the generated assets, publish
-the reviewed release, create the public tap with its exact cask/license, and verify
-a real Homebrew download/install/uninstall in a temporary app directory. Then update
-the README and verification records with actual public links/results. Keep app
-behavior and audio settings unchanged; preserve quarantine and report any launch
-block rather than overriding it.
+Publication completed: tagged commit `e8f65274a1873ca6e166aaa13f9e073747395315`
+as `v0.3.0`; the release workflow (40644355696) and tag Checks (40644355694) passed.
+Downloaded and verified every draft asset, exact source snapshot and clean/tagged
+manifest, then published the release. Created `universetraveller/homebrew-tap`
+with the exact cask, README and GPL license at commit
+`d255d600baf7c7c392acb3d6fb804414a64236b5`. Anonymous app download matched SHA-256
+`7f21003f02780e0d705f402a7b99dec79c71b659c68adb43951d188bc5dc745d`.
+
+Homebrew installed and removed the public cask successfully in a temporary app
+directory. The app binary matched the release, strict signature verification passed,
+and quarantine remained present. The upgrade command correctly reported 0.3.0 as
+current; cross-version upgrading remains untested. Gatekeeper rejected the ad-hoc
+app; the manual Open Anyway requirement remains documented and no override was
+automated. The original local build was reopened after uninstall. README and
+verification records now describe the live installation route. No audio-code or
+device-settings change was part of this distribution work.
 
 The generated recipe passed Ruby syntax and Homebrew 7.0.11's real content-loader
 DSL checks (version, checksum, URL, ARM requirement, Sonoma floor, app, uninstall
@@ -121,17 +131,19 @@ round-trips the app ZIP, checks the extracted signature/executable, and rejects
 source changes during preparation. `scripts/release.py bump X.Y.Z` updates app/build
 versions and starts an empty changelog section that must be filled before packaging.
 
-Local preparation passed on the M2 with CLT, including six release-invariant tests,
-the existing C/Swift/browser mock suite, all asset checksums, and exact source/archive
-comparison. The 0.3.0 package is a local review build marked as uncommitted source.
+Initial local preparation passed on the M2 with CLT, including six release-invariant
+tests, the existing C/Swift/browser mock suite, all asset checksums, and exact
+source/archive comparison. It produced an uncommitted-source review package. Public
+0.3.0 assets were rebuilt in CI from the clean tag and checked separately above.
 See `docs/verification.md` for actual results and `docs/releasing.md` for usage.
 
 The general GitHub Checks workflow passed for the committed source (runs
-40637313073 and 40643290337). The tag-triggered release workflow still needs its
-first hosted run. It requires a clean checkout and tag/version/HEAD agreement,
-builds on arm64, retains an artifact, and creates an unpublished draft. Public
-download/install checks will follow explicit publication. Local signature success
-does not establish Developer ID/notarization or older-macOS runtime compatibility.
+40637313073 and 40643290337). The tag-triggered release workflow also passed for
+0.3.0 (40644355696). It requires a clean checkout and tag/version/HEAD agreement,
+builds on arm64, retains an artifact, and creates an unpublished draft. That reviewed
+draft was explicitly published under the maintainer's authorization, followed by
+public download and Homebrew install/uninstall checks. Local signature success does
+not establish Developer ID/notarization or older-macOS runtime compatibility.
 
 ### README positioning refinement
 
