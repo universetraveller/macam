@@ -62,6 +62,40 @@ No full Xcode application is required for the proposed implementation.
 
 ## Implementation status
 
+### 0.3 multi-exclusion and interface refinement
+
+Requested: a set of optional playback exclusions, checkable independently, retaining
+Off as the empty default. Decode the 0.2 single explicit exclusion into that set;
+continue ignoring 0.1's implicit receiver preference. Repeated CLI `--exclude`
+flags add exclusions; `--exclude none` clears them.
+
+Replace the two-line header and separate Start/status items with a one-line header
+and compact control row. Show a short status beside Start/Stop and retain detailed
+status/error text through an accessible details action. Move browser diagnostics
+and permission help into About. Verify the actual AppKit components visually.
+
+Rewrite the public README around purpose, quickstart, multi-choice exclusions,
+browser use, evidence/limits, and a primary-source product comparison. Add an
+explicit 100% LLM-generated code disclosure without erasing upstream authorship.
+The existing responsibility/ancestry helper implementation is attributed as an
+adaptation of FineTune, so retain the focused credit, source notices, and GPL-3.0.
+The public tap-only input path remains Macam-specific; no output replay or default
+device management is introduced by this refinement.
+
+Implemented: set-based exclusions and 0.2 migration, independently checked menu
+items, repeated CLI exclusions and clearing, compact Start/status controls with
+accessible detailed status, one-line heading, and diagnostics inside About.
+Selection tests cover union/removal/clearing, shared-helper isolation, selected
+sources, migration/round trips, and CLI accumulation. AppKit previews were rendered
+and inspected for the menu states and About tools. README comparison sources are
+the upstream FineTune/BlackHole repositories and Rogue Amoeba's Loopback page.
+Completed verification: full local test script and native three-second lifecycle
+probe with two exclusions. Settings stayed unchanged, input cleanup passed, and no
+sample-time gaps were observed. The user confirmed Start/Stop, independent checked
+exclusions, and opening diagnostics from About. The signed 0.3.0 app was packaged
+with a checksum. The browser signal matrix remains the recorded 0.2 runtime evidence;
+the UI refinement does not claim a fresh four-route or long-duration browser run.
+
 ### 0.2 browser routing and public project requirements
 
 Implemented update: default playback exclusion to Off, retain explicit application

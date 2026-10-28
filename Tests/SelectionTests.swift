@@ -23,7 +23,7 @@ import Foundation
         let whole = catalog.configuration(CaptureSelection())
         precondition(whole.objects == [103], "Default whole-system tap must exclude only Macam")
         precondition(!whole.bundles.contains("com.google.Chrome.helper"))
-        precondition(CaptureSelection().excludedApplication == nil)
+        precondition(CaptureSelection().excludedApplications.isEmpty)
 
         // Receiving a stream does not identify an application's output as unwanted.
         // All four browser routes must keep the source, including same-browser use.
@@ -35,14 +35,14 @@ import Foundation
                 precondition(catalog.configuration(route).objects == (source == "com.google.Chrome" ? [102] : [100]))
             }
         }
-        var explicit = CaptureSelection(); explicit.excludedApplication = "bundle:com.google.Chrome"
+        var explicit = CaptureSelection(); explicit.excludedApplications = ["bundle:com.google.Chrome"]
         precondition(catalog.configuration(explicit).objects == [102, 103])
         precondition(catalog.configuration(explicit).bundles.contains("com.google.Chrome.helper"))
         explicit.wholeSystem = false; explicit.applications = ["bundle:com.google.Chrome"]
         precondition(catalog.configuration(explicit).objects.isEmpty)
-        explicit.excludedApplication = nil
+        explicit.excludedApplications = []
         precondition(catalog.configuration(explicit).objects == [102], "Turning exclusion off restores Chrome capture")
-        var allBrowsers = CaptureSelection(); allBrowsers.excludedApplication = CaptureSelection.allBrowsers
+        var allBrowsers = CaptureSelection(); allBrowsers.excludedApplications = [CaptureSelection.allBrowsers]
         precondition(catalog.configuration(allBrowsers).objects == [100, 101, 102, 103], "Conservative browser exclusion includes shared WebKit hosts")
         selected.applications = ["bundle:org.macam.nonexistent"]
         precondition(catalog.configuration(selected).objects.isEmpty)
@@ -50,11 +50,34 @@ import Foundation
         // Old personal defaults must not silently re-enable exclusion on upgrade.
         let legacy = Data(#"{"wholeSystem":false,"applications":["bundle:com.apple.Safari"],"receiver":"bundle:com.google.Chrome"}"#.utf8)
         let migrated = try! JSONDecoder().decode(CaptureSelection.self, from: legacy)
-        precondition(migrated.excludedApplication == nil && migrated.applications == ["bundle:com.apple.Safari"])
+        precondition(migrated.excludedApplications.isEmpty && migrated.applications == ["bundle:com.apple.Safari"])
         let saved = try! JSONEncoder().encode(explicit)
         precondition(try! JSONDecoder().decode(CaptureSelection.self, from: saved) == explicit)
-        explicit.excludedApplication = "bundle:com.apple.Safari"
+        explicit.excludedApplications = ["bundle:com.apple.Safari"]
         precondition(try! JSONDecoder().decode(CaptureSelection.self, from: JSONEncoder().encode(explicit)) == explicit)
-        print("Source-selection tests passed (all four browser routes, optional exclusion, preference migration, shared helpers).")
+
+        var multiple = CaptureSelection()
+        multiple.excludedApplications = ["bundle:com.google.Chrome", "bundle:com.apple.Safari"]
+        precondition(catalog.configuration(multiple).objects == [100, 102, 103], "Union must exclude both browsers while retaining Mail's shared helper")
+        precondition(!catalog.configuration(multiple).bundles.contains("com.apple.WebKit.GPU"))
+        multiple.excludedApplications.remove("bundle:com.google.Chrome")
+        precondition(catalog.configuration(multiple).objects == [100, 103], "Unchecking one app must retain the other exclusion")
+        multiple.excludedApplications.removeAll()
+        precondition(catalog.configuration(multiple).objects == [103])
+        multiple.wholeSystem = false
+        multiple.applications = ["bundle:com.apple.Safari", "bundle:com.google.Chrome", "bundle:com.apple.mail"]
+        multiple.excludedApplications = ["bundle:com.google.Chrome", "bundle:com.apple.mail"]
+        precondition(catalog.configuration(multiple).objects == [100], "Multiple exclusions must also filter selected-source mode")
+        let previous = Data(#"{"wholeSystem":true,"applications":[],"excludedApplication":"bundle:com.google.Chrome"}"#.utf8)
+        precondition(try! JSONDecoder().decode(CaptureSelection.self, from: previous).excludedApplications == ["bundle:com.google.Chrome"])
+        let cleared = Data(#"{"excludedApplications":[],"excludedApplication":"bundle:com.google.Chrome"}"#.utf8)
+        precondition(try! JSONDecoder().decode(CaptureSelection.self, from: cleared).excludedApplications.isEmpty)
+        precondition(try! JSONDecoder().decode(CaptureSelection.self, from: JSONEncoder().encode(multiple)) == multiple)
+        let cli = try! selectionFromArguments(["Macam", "--exclude", "com.google.Chrome", "--exclude", "com.apple.Safari", "--exclude", "com.google.Chrome"])
+        precondition(cli.excludedApplications == ["bundle:com.google.Chrome", "bundle:com.apple.Safari"])
+        precondition(try! selectionFromArguments(["Macam", "--exclude", "com.google.Chrome", "--exclude", "none"]).excludedApplications.isEmpty)
+        let clearedThenAdded = try! selectionFromArguments(["Macam", "--exclude", "none", "--receiver", "com.apple.Safari"])
+        precondition(clearedThenAdded.excludedApplications == ["bundle:com.apple.Safari"])
+        print("Source-selection tests passed (all four browser routes, multiple exclusions, preference migration, shared helpers).")
     }
 }

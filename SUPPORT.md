@@ -12,7 +12,7 @@ For an audio issue, include:
 - The failing route, permission prompts, exact error, and minimal reproduction.
 - Whether Start/Stop, receiver restart, output switching, or sleep triggered it.
 
-The bundled Browser Audio Tests pages work offline and expose device/permission
+The offline diagnostic pages in About Macam work offline and expose device/permission
 diagnostics. Follow `docs/browser-testing.md` for Chrome/Safari route results.
 An anonymous input placeholder can reflect browser permission exposure; it does
 not establish that the native device is missing.

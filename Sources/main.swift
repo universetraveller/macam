@@ -20,19 +20,6 @@ func duration(_ args: [String], after option: String) throws -> Double {
     }
     return seconds
 }
-func selectionFromArguments(_ args: [String]) throws -> CaptureSelection {
-    var selection = CaptureSelection()
-    for i in args.indices where args[i] == "--source" || args[i] == "--exclude" || args[i] == "--receiver" {
-        guard i + 1 < args.count, !args[i + 1].hasPrefix("--") else { throw MacamError(message: "Missing value after \(args[i])") }
-        let raw = args[i + 1]
-        let key = raw.hasPrefix("bundle:") || raw.hasPrefix("executable:") || raw == CaptureSelection.allBrowsers ? raw : "bundle:" + raw
-        if args[i] == "--exclude" || args[i] == "--receiver" {
-            selection.excludedApplication = raw == "none" ? nil : key
-        }
-        else { selection.wholeSystem = false; selection.applications.insert(key) }
-    }
-    return selection
-}
 func diagnostics() throws {
     let args = CommandLine.arguments
     if args.contains("--help") {
@@ -46,7 +33,7 @@ func diagnostics() throws {
         --probe SECONDS           Publish Macam Audio, meter, then remove it
         --read SECONDS            Independently open Macam Audio and meter its input
         --source BUNDLE_ID        Capture only this app; repeat for multiple sources
-        --exclude BUNDLE_ID       Optional playback exclusion (default none); use none to clear
+        --exclude BUNDLE_ID       Add a playback exclusion; repeat for multiple apps; none clears all
         --receiver BUNDLE_ID      Legacy alias for --exclude
         --allow-silence           Permit silent diagnostic results
         --cleanup                 Reclaim only resources in Macam's ownership journal

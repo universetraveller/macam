@@ -1,9 +1,14 @@
 #!/bin/bash
 set -euo pipefail
 cd "$(dirname "$0")/.."
-# Quit Macam first; packaging builds the same CLT-only app as local development.
-./scripts/build.sh
-package_version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Resources/Info.plist)"
+# The default builds first. --no-build packages an already verified app without
+# changing its files, so it can also be used after interactive UI verification.
+case "${1:-}" in
+    '') ./scripts/build.sh ;;
+    --no-build) codesign --verify --strict .build/Macam.app ;;
+    *) echo 'Usage: scripts/package.sh [--no-build]' >&2; exit 2 ;;
+esac
+package_version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' .build/Macam.app/Contents/Info.plist)"
 package_name="Macam-${package_version}-$(uname -m).zip"
 ditto -c -k --sequesterRsrc --keepParent .build/Macam.app ".build/$package_name"
 cp ".build/$package_name" .build/Macam.zip

@@ -20,9 +20,9 @@ earlier native selected-Safari test provide separate selection evidence.
 
 ## Reproduce each route
 
-1. Start Macam with **Playback exclusion: Off**. Choose Whole system or the source
+1. Start Macam with **Playback exclusions: Off**. Choose Whole system or the source
    browser explicitly. Use application selection for an isolation check.
-2. From **Browser Audio Tests**, open the tone source in the source browser and the
+2. From **About Macam → Diagnostics**, open the tone source in the source browser and the
    receiver in the destination browser. For same-browser routes, use separate tabs.
 3. Stop every other test tone and the previous receiver session. Choose the route
    label in the destination page. Route metadata does not configure Macam.

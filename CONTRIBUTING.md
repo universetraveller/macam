@@ -16,6 +16,12 @@ issue before implementing them. Small fixes can be submitted directly as pull re
 5. Explain the concrete problem, resulting behavior, and relevant verification in
    the pull request. Distinguish source inspection, mocked tests, and runtime tests.
 
+For menu/About changes, `./scripts/preview-ui.sh` renders Macam-owned AppKit
+components into `.build/previews/` without taking a screen capture. Review the
+images and verify native interactions as appropriate. The README records the
+current LLM-generated code provenance; keep that disclosure accurate when
+contributions change the authorship mix. Upstream adaptations still need attribution.
+
 Use Swift/AppKit for the control path and small C functions for real-time work.
 Callbacks must not allocate, lock, log, query properties, dispatch work, or call UI
 or Objective-C APIs. Shared callback/UI state needs appropriate synchronization.

@@ -18,6 +18,32 @@ audio tests ran outside it with authorization. Empty snapshots are rejected.
 
 ## Architecture conclusion
 
+### 0.3 exclusions, interface, and documentation
+
+The multi-choice model and migration tests pass: exclusions combine as a union,
+unchecking one preserves the others, Clear all restores the empty default, 0.2's
+explicit single exclusion is retained, 0.1's implicit receiver stays ignored,
+and repeated CLI flags accumulate/clear correctly. Shared WebKit helpers retain
+their process-specific selection behavior.
+
+The compact menu and About controls were rendered from Macam-owned AppKit views
+and visually inspected. These are component renders, not screen captures or a claim
+of native menu interaction. The README uses a labeled component preview.
+
+The full local test script passed (build, signature/plist, sanitized meter tests,
+selection/migration tests, Chromium/Safari API mocks, tone-source graph mocks).
+A three-second native probe with both Chrome and Safari exclusions delivered
+143,872 frames with zero sample-time gaps, preserved all snapshotted settings,
+removed the input, and reported no cleanup errors. Silence was explicitly allowed
+for this lifecycle check; it does not add non-silent browser-route evidence.
+The 0.2 browser runtime matrix below remains the recorded four-route evidence.
+
+The user confirmed all three native UI checks: the new Start/Stop row works,
+two exclusions remain checked independently, and About → Diagnostics opens a
+test page. This supplements the component renders and automated model checks.
+See [the 0.3 verification summary](verification-ui-0.3.json). The signed 0.3.0
+bundle was packaged without rebuilding after UI verification.
+
 ### 0.2 browser routing update
 
 Playback exclusion now defaults to Off and is an explicit opt-in; old implicit
@@ -139,4 +165,4 @@ python3 scripts/verify.py --seconds 120 --source com.apple.Safari
 
 The second command tests an empty selection, four seconds of selected capture,
 and silence after deselection without replacing the public input. Use Macam's
-**Browser Audio Tests** menu for browser verification.
+**About Macam → Diagnostics** controls for browser verification.

@@ -21,16 +21,52 @@ struct AudioApplication {
 struct CaptureSelection: Codable, Equatable {
     var wholeSystem = true
     var applications: Set<String> = []
-    // No receiving application is assumed. This optional opt-in excludes playback
-    // from an entire application (including its helpers), never individual tabs.
-    // The old `receiver` JSON key is intentionally ignored when decoding 0.1 prefs.
-    var excludedApplication: String? = nil
+    // Each explicit exclusion covers an application and its helpers, never a tab.
+    var excludedApplications: Set<String> = []
     static let allBrowsers = "all-browsers"
     static let ownKey = "bundle:org.macam.Macam"
-    func isExcluded(_ key: String) -> Bool {
-        key == Self.ownKey || key == excludedApplication ||
-            (excludedApplication == Self.allBrowsers && ProcessCatalog.isBrowser(key))
+
+    init() {}
+    private enum CodingKeys: String, CodingKey {
+        case wholeSystem, applications, excludedApplications, excludedApplication
     }
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        wholeSystem = try values.decodeIfPresent(Bool.self, forKey: .wholeSystem) ?? true
+        applications = try values.decodeIfPresent(Set<String>.self, forKey: .applications) ?? []
+        if let multiple = try values.decodeIfPresent(Set<String>.self, forKey: .excludedApplications) {
+            excludedApplications = multiple
+        } else if let previous = try values.decodeIfPresent(String.self, forKey: .excludedApplication) {
+            excludedApplications = [previous] // Preserve the 0.2 explicit opt-in.
+        }
+        // 0.1's implicit `receiver` preference is intentionally not decoded.
+    }
+    func encode(to encoder: Encoder) throws {
+        var values = encoder.container(keyedBy: CodingKeys.self)
+        try values.encode(wholeSystem, forKey: .wholeSystem)
+        try values.encode(applications.sorted(), forKey: .applications)
+        try values.encode(excludedApplications.sorted(), forKey: .excludedApplications)
+    }
+    func isExcluded(_ key: String) -> Bool {
+        key == Self.ownKey || excludedApplications.contains(key) ||
+            (excludedApplications.contains(Self.allBrowsers) && ProcessCatalog.isBrowser(key))
+    }
+}
+
+func selectionFromArguments(_ args: [String]) throws -> CaptureSelection {
+    var selection = CaptureSelection()
+    for i in args.indices where args[i] == "--source" || args[i] == "--exclude" || args[i] == "--receiver" {
+        guard i + 1 < args.count, !args[i + 1].hasPrefix("--") else {
+            throw MacamError(message: "Missing value after \(args[i])")
+        }
+        let raw = args[i + 1]
+        let key = raw.hasPrefix("bundle:") || raw.hasPrefix("executable:") || raw == CaptureSelection.allBrowsers ? raw : "bundle:" + raw
+        if args[i] == "--exclude" || args[i] == "--receiver" {
+            if raw == "none" { selection.excludedApplications.removeAll() }
+            else { selection.excludedApplications.insert(key) }
+        } else { selection.wholeSystem = false; selection.applications.insert(key) }
+    }
+    return selection
 }
 struct ProcessCatalog {
     let processes: [AudioProcess]
@@ -98,13 +134,13 @@ struct ProcessCatalog {
     func configuration(_ selection: CaptureSelection) -> (objects: [AudioObjectID], bundles: [String]) {
         let matching = processes.filter { p in
             let excluded = selection.isExcluded(p.key) || p.pid == getpid() ||
-                (selection.excludedApplication == CaptureSelection.allBrowsers && Self.isBrowser("bundle:" + p.rawBundle))
+                (selection.excludedApplications.contains(CaptureSelection.allBrowsers) && Self.isBrowser("bundle:" + p.rawBundle))
             return selection.wholeSystem ? excluded : selection.applications.contains(p.key) && !excluded
         }
         var keys: Set<String>
         if selection.wholeSystem {
             keys = [CaptureSelection.ownKey]
-            if let excluded = selection.excludedApplication {
+            for excluded in selection.excludedApplications {
                 if excluded == CaptureSelection.allBrowsers { keys.formUnion(Self.browsers.map { "bundle:" + $0 }) }
                 else { keys.insert(excluded) }
             }
@@ -117,7 +153,7 @@ struct ProcessCatalog {
         matching.filter { !$0.rawBundle.isEmpty && !$0.rawBundle.hasPrefix("com.apple.WebKit.") }.forEach {
             if Set((owners[$0.rawBundle] ?? []).map(\.key)).count == 1 { bundles.insert($0.rawBundle) }
         }
-        if selection.wholeSystem && selection.excludedApplication == CaptureSelection.allBrowsers {
+        if selection.wholeSystem && selection.excludedApplications.contains(CaptureSelection.allBrowsers) {
             bundles.formUnion(["com.apple.WebKit.GPU", "com.apple.WebKit.WebContent", "com.apple.WebKit.Networking"])
         }
         // Chromium audio utility helpers use a stable app-specific bundle ID.

@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.0 — unreleased
+
+- Select multiple playback exclusions independently; Clear all restores Off.
+- Preserve explicit 0.2 exclusions on migration. Repeated `--exclude` flags add
+  applications; `--exclude none` clears earlier selections.
+- Use a one-line menu heading and place status beside Start/Stop. Click status for
+  full details. Keep the meter and source/exclusion controls in the main menu.
+- Move browser diagnostics, test-tone tools, and permission help into About Macam.
+- Rewrite the README with a prominent 100% LLM-generated code disclosure,
+  primary-source comparisons, and focused FineTune adaptation/license credit.
+- Add AppKit component rendering for visual review without screen capture.
+
 ## 0.2.0 — unreleased
 
 - Playback exclusion is optional and Off by default. Macam itself stays excluded.

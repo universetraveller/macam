@@ -15,36 +15,15 @@ final class HALObservation {
     deinit { AudioObjectRemovePropertyListenerBlock(object, &address, .main, block) }
 }
 
-final class MeterView: NSView {
-    let level = NSLevelIndicator(frame: NSRect(x: 16, y: 8, width: 264, height: 12))
-    let label = NSTextField(labelWithString: "No signal")
-    override init(frame frameRect: NSRect) {
-        super.init(frame: NSRect(x: 0, y: 0, width: 296, height: 48))
-        label.frame = NSRect(x: 16, y: 25, width: 264, height: 18)
-        label.font = .monospacedDigitSystemFont(ofSize: 11, weight: .regular)
-        level.levelIndicatorStyle = .continuousCapacity
-        level.minValue = -60; level.maxValue = 0; level.warningValue = -6; level.criticalValue = -1
-        level.isEditable = false
-        addSubview(level); addSubview(label)
-        set(0)
-    }
-    required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
-    func set(_ peak: Float) {
-        let db = peak > 0 ? max(-60, 20 * log10(Double(peak))) : -60
-        level.doubleValue = db
-        label.stringValue = peak > 0.000001 ? String(format: "Input peak: %.1f dBFS", db) : "Input: no signal"
-        setAccessibilityLabel("Macam Audio input meter")
-        setAccessibilityValue(label.stringValue)
-    }
-}
-
 final class MenuBarController: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var statusItem: NSStatusItem!
     private let menu = NSMenu()
-    private let startStop = NSMenuItem(title: "Start", action: #selector(toggle), keyEquivalent: "s")
-    private let status = NSMenuItem(title: "Stopped", action: nil, keyEquivalent: "")
+    private let startStopShortcut = NSMenuItem(title: "Start", action: #selector(toggle), keyEquivalent: "s")
+    private let controls = CaptureControlView()
+    private var statusDetail = "Stopped"
+    private weak var aboutTools: AboutToolsView?
     private let sourceItem = NSMenuItem(title: "Source: Whole system", action: nil, keyEquivalent: "")
-    private let exclusionItem = NSMenuItem(title: "Playback exclusion: Off", action: nil, keyEquivalent: "")
+    private let exclusionItem = NSMenuItem(title: "Playback exclusions: Off", action: nil, keyEquivalent: "")
     private let meterView = MeterView(frame: .zero)
     private let engine = MirrorEngine()
     private var selection = CaptureSelection()
@@ -67,37 +46,24 @@ final class MenuBarController: NSObject, NSApplicationDelegate, NSMenuDelegate {
         statusItem.menu = menu
         menu.delegate = self
         menu.autoenablesItems = false
-        let title = NSMenuItem(title: "Macam — Mac Audio Mirror", action: nil, keyEquivalent: "")
+        let title = NSMenuItem(title: "Macam — Mirror your Mac’s audio.", action: nil, keyEquivalent: "")
+        title.toolTip = "Mac Audio Mirror"
         title.isEnabled = false; menu.addItem(title)
-        let tagline = NSMenuItem(title: "Mirror your Mac’s audio.", action: nil, keyEquivalent: "")
-        tagline.isEnabled = false; menu.addItem(tagline)
-        menu.addItem(.separator())
-        startStop.target = self; menu.addItem(startStop)
-        status.isEnabled = false; menu.addItem(status)
+        controls.toggleButton.target = self; controls.toggleButton.action = #selector(toggle)
+        controls.statusButton.target = self; controls.statusButton.action = #selector(showStatusDetails)
+        let controlItem = NSMenuItem(); controlItem.view = controls; menu.addItem(controlItem)
+        startStopShortcut.target = self; startStopShortcut.isHidden = true
+        startStopShortcut.allowsKeyEquivalentWhenHidden = true; menu.addItem(startStopShortcut)
         let meterItem = NSMenuItem(); meterItem.view = meterView; menu.addItem(meterItem)
+        menu.addItem(.separator())
         menu.addItem(sourceItem); menu.addItem(exclusionItem)
         menu.addItem(.separator())
-        let permissions = NSMenuItem(title: "Audio Recording Permissions…", action: #selector(openPermissions), keyEquivalent: "")
-        permissions.target = self; menu.addItem(permissions)
-        let browserTest = NSMenuItem(title: "Browser Audio Tests", action: nil, keyEquivalent: "")
-        let testMenu = NSMenu()
-        testMenu.autoenablesItems = false
-        for (file, title) in [("ReceiverTest", "Open receiver"), ("ToneSource", "Open test tone")] {
-            if file == "ToneSource" { testMenu.addItem(.separator()) }
-            for (browser, name) in [("default", "Default Browser"), ("com.google.Chrome", "Google Chrome"), ("com.apple.Safari", "Safari")] {
-                let item = NSMenuItem(title: "\(title) in \(name)…", action: #selector(openBrowserTest(_:)), keyEquivalent: "")
-                item.target = self; item.representedObject = ["file": file, "browser": browser]
-                item.isEnabled = browser == "default" || NSWorkspace.shared.urlForApplication(withBundleIdentifier: browser) != nil
-                testMenu.addItem(item)
-            }
-        }
-        browserTest.submenu = testMenu; menu.addItem(browserTest)
         let about = NSMenuItem(title: "About Macam…", action: #selector(showAbout), keyEquivalent: "")
         about.target = self; menu.addItem(about)
         let quit = NSMenuItem(title: "Quit Macam", action: #selector(quitApp), keyEquivalent: "q")
         quit.target = self; menu.addItem(quit)
         do { let owner = try AudioOwnership(); try owner.recover() }
-        catch { setStatus(error.localizedDescription) }
+        catch { setStatus(error.localizedDescription, summary: "Needs attention", tone: .error) }
         refreshCatalog()
         rebuildChoices()
         observations = [kAudioHardwarePropertyProcessObjectList, kAudioHardwarePropertyDevices,
@@ -108,12 +74,12 @@ final class MenuBarController: NSObject, NSApplicationDelegate, NSMenuDelegate {
         workspaceTokens.append(center.addObserver(forName: NSWorkspace.willSleepNotification, object: nil, queue: .main) { [weak self] _ in
             guard let self else { return }
             self.sleeping = true; self.engine.stop(); self.meterView.set(0)
-            if self.wanted { self.setStatus("Paused for sleep") }
+            if self.wanted { self.setStatus("Paused for sleep", summary: "Paused", tone: .attention) }
         })
         workspaceTokens.append(center.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { [weak self] _ in
             guard let self else { return }
             self.sleeping = false; self.retryAt = Date(timeIntervalSinceNow: 1); self.retries = 0
-            if self.wanted { self.setStatus("Resuming after wake…") }
+            if self.wanted { self.setStatus("Resuming after wake…", summary: "Resuming…", tone: .attention) }
         })
         timer = Timer(timeInterval: 0.2, repeats: true) { [weak self] _ in self?.tick() }
         RunLoop.main.add(timer!, forMode: .common)
@@ -125,8 +91,9 @@ final class MenuBarController: NSObject, NSApplicationDelegate, NSMenuDelegate {
         engine.stop()
         engine.cleanupErrors.forEach { fputs("Macam cleanup: \($0)\n", stderr) }
     }
-    private func setStatus(_ text: String) {
-        status.title = text
+    private func setStatus(_ text: String, summary: String, tone: CaptureStatusTone) {
+        statusDetail = text
+        controls.update(requested: wanted, summary: summary, detail: text, tone: tone)
         statusItem?.button?.toolTip = "Macam — \(text)"
     }
     private func save() {
@@ -145,14 +112,15 @@ final class MenuBarController: NSObject, NSApplicationDelegate, NSMenuDelegate {
         engine.stop(); meterView.set(0)
         retries += 1
         retryAt = Date(timeIntervalSinceNow: min(30, pow(2, Double(retries))))
-        setStatus("\(error.localizedDescription)\(retries < 4 ? " — retrying" : " — press Stop/Start to retry")")
+        setStatus("\(error.localizedDescription)\(retries < 4 ? " — retrying" : " — press Stop/Start to retry")",
+                  summary: retries < 4 ? "Retrying…" : "Needs attention", tone: .error)
     }
     private func start() {
         do {
             refreshCatalog()
             try engine.start(selection: selection, catalog: catalog)
             startedAt = Date(); lastAdvance = Date(); lastFrames = 0
-            setStatus("Listening — select Macam Audio in your receiver")
+            setStatus("Select Macam Audio as the input in your receiving application.", summary: "Listening", tone: .active)
             statusItem.button?.image = NSImage(systemSymbolName: "waveform.circle.fill", accessibilityDescription: "Macam running")
         } catch { fail(error) }
     }
@@ -172,9 +140,9 @@ final class MenuBarController: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         if Date().timeIntervalSince(startedAt) > 10 { retries = 0 }
         if Date().timeIntervalSince(startedAt) > 5 && reading.nonzero == 0 {
-            setStatus("No signal — play source audio; check recording permission")
+            setStatus("No signal — play source audio; check recording permission", summary: "No signal", tone: .attention)
         } else if reading.nonzero > 0 {
-            setStatus("Mirroring to Macam Audio")
+            setStatus("Mirroring to Macam Audio", summary: "Mirroring", tone: .active)
         }
         // Tap streams can change format/rate after a device change. The meter is
         // format agnostic within Float32 stereo. Rebuild if that contract changes.
@@ -187,12 +155,15 @@ final class MenuBarController: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
     @objc private func toggle() {
+        menu.cancelTracking()
         wanted.toggle(); retries = 0
-        startStop.title = wanted ? "Stop" : "Start"
+        startStopShortcut.title = wanted ? "Stop" : "Start"
         if wanted { start() }
         else {
             engine.stop(); meterView.set(0)
-            setStatus(engine.cleanupErrors.isEmpty ? "Stopped" : engine.cleanupErrors.joined(separator: "; "))
+            setStatus(engine.cleanupErrors.isEmpty ? "Stopped" : engine.cleanupErrors.joined(separator: "; "),
+                      summary: engine.cleanupErrors.isEmpty ? "Stopped" : "Cleanup needed",
+                      tone: engine.cleanupErrors.isEmpty ? .idle : .error)
             statusItem.button?.image = NSImage(systemSymbolName: "waveform", accessibilityDescription: "Macam stopped")
         }
     }
@@ -205,7 +176,9 @@ final class MenuBarController: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
     private func rebuildChoices() {
         sourceItem.title = selection.wholeSystem ? "Source: Whole system" : "Source: \(selection.applications.count) selected app(s)"
-        exclusionItem.title = "Playback exclusion: \(selection.excludedApplication.map(label) ?? "Off")"
+        let excluded = selection.excludedApplications
+        let exclusionSummary = excluded.isEmpty ? "Off" : excluded.count == 1 ? label(excluded.first!) : "\(excluded.count) selected"
+        exclusionItem.title = "Playback exclusions: \(exclusionSummary)"
         let sources = NSMenu(), exclusions = NSMenu()
         sources.autoenablesItems = false; exclusions.autoenablesItems = false
         let whole = NSMenuItem(title: "Whole system", action: #selector(selectSource(_:)), keyEquivalent: "")
@@ -227,19 +200,19 @@ final class MenuBarController: NSObject, NSApplicationDelegate, NSMenuDelegate {
             if !item.isEnabled { item.title += " (playback excluded)" }
             sources.addItem(item)
         }
-        let off = NSMenuItem(title: "Off", action: #selector(selectExclusion(_:)), keyEquivalent: "")
+        let off = NSMenuItem(title: "Clear all (Off)", action: #selector(selectExclusion(_:)), keyEquivalent: "")
         off.target = self; off.representedObject = "no-exclusion"
-        off.state = selection.excludedApplication == nil ? .on : .off
+        off.state = excluded.isEmpty ? .on : .off
         exclusions.addItem(off); exclusions.addItem(.separator())
         var exclusionChoices = [AudioApplication(key: CaptureSelection.allBrowsers, name: "All browsers")]
         exclusionChoices += catalog.applications.filter { $0.isUserApplication }
-        if let excluded = selection.excludedApplication, !exclusionChoices.contains(where: { $0.key == excluded }) {
-            exclusionChoices.insert(AudioApplication(key: excluded, name: label(excluded)), at: 1)
+        for key in excluded.sorted() where !exclusionChoices.contains(where: { $0.key == key }) {
+            exclusionChoices.insert(AudioApplication(key: key, name: label(key)), at: 1)
         }
         for app in exclusionChoices {
             let item = NSMenuItem(title: app.name, action: #selector(selectExclusion(_:)), keyEquivalent: "")
             item.target = self; item.representedObject = app.key
-            item.state = selection.excludedApplication == app.key ? .on : .off; exclusions.addItem(item)
+            item.state = excluded.contains(app.key) ? .on : .off; exclusions.addItem(item)
         }
         sourceItem.submenu = sources; exclusionItem.submenu = exclusions
     }
@@ -262,7 +235,9 @@ final class MenuBarController: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
     @objc private func selectExclusion(_ item: NSMenuItem) {
         guard let key = item.representedObject as? String else { return }
-        selection.excludedApplication = key == "no-exclusion" ? nil : key
+        if key == "no-exclusion" { selection.excludedApplications.removeAll() }
+        else if selection.excludedApplications.contains(key) { selection.excludedApplications.remove(key) }
+        else { selection.excludedApplications.insert(key) }
         selection.applications = selection.applications.filter { !selection.isExcluded($0) }
         selectionChanged()
     }
@@ -272,20 +247,36 @@ final class MenuBarController: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
     @objc private func showAbout() {
-        let alert = NSAlert()
-        alert.messageText = "Macam — Mac Audio Mirror"
-        alert.informativeText = "Mirror your Mac’s audio.\n\nChoose Macam Audio as the input in your receiving app. Playback exclusion is optional and off by default. The same browser can send and receive; keep the receiving app’s input monitoring off. Capture is per application, not per tab.\n\nFree, local-only software under GPL-3.0. No warranty. Source and license are included in the repository. Helper discovery is informed by FineTune, © 2026 Ronit Singh."
-        alert.addButton(withTitle: "OK"); alert.addButton(withTitle: "License")
+        menu.cancelTracking()
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "Development"
+        let available = Set(["com.google.Chrome", "com.apple.Safari"].filter {
+            NSWorkspace.shared.urlForApplication(withBundleIdentifier: $0) != nil
+        })
+        let (alert, tools) = makeAboutAlert(version: version, availableBrowsers: available)
+        tools.receiverButton.target = self; tools.receiverButton.action = #selector(openReceiverTest)
+        tools.toneButton.target = self; tools.toneButton.action = #selector(openToneTest)
+        tools.permissionsButton.target = self; tools.permissionsButton.action = #selector(openPermissions)
+        aboutTools = tools
         NSApp.activate(ignoringOtherApps: true)
         if alert.runModal() == .alertSecondButtonReturn,
            let license = Bundle.main.url(forResource: "LICENSE", withExtension: nil) { NSWorkspace.shared.open(license) }
+        aboutTools = nil
     }
-    @objc private func openBrowserTest(_ item: NSMenuItem) {
-        guard let choice = item.representedObject as? [String: String], let file = choice["file"],
-              let browser = choice["browser"], let url = Bundle.main.url(forResource: file, withExtension: "html") else { return }
+    @objc private func openReceiverTest() { openBrowserTest(file: "ReceiverTest") }
+    @objc private func openToneTest() { openBrowserTest(file: "ToneSource") }
+    private func openBrowserTest(file: String) {
+        guard let url = Bundle.main.url(forResource: file, withExtension: "html") else { return }
+        let browser = aboutTools?.selectedBrowser ?? "default"
         if browser != "default", let application = NSWorkspace.shared.urlForApplication(withBundleIdentifier: browser) {
             NSWorkspace.shared.open([url], withApplicationAt: application, configuration: NSWorkspace.OpenConfiguration())
         } else { NSWorkspace.shared.open(url) }
+    }
+    @objc private func showStatusDetails() {
+        menu.cancelTracking()
+        let alert = NSAlert()
+        alert.messageText = "Macam capture status"
+        alert.informativeText = statusDetail
+        NSApp.activate(ignoringOtherApps: true); alert.runModal()
     }
     @objc private func quitApp() { NSApp.terminate(nil) }
 }

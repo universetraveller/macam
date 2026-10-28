@@ -1,0 +1,30 @@
+{
+  "date": "2026-10-27",
+  "macamVersion": "0.3.0",
+  "automatedChecks": {
+    "buildAndLocalSignature": true,
+    "sanitizedRealtimeMeterTests": true,
+    "multipleExclusionAndMigrationTests": true,
+    "chromiumAndSafariApiMocks": true,
+    "toneSourceGraphMocks": true
+  },
+  "visualReview": "Macam-owned AppKit component renders; no screen capture",
+  "userReportedUiChecks": {
+    "startStopControlWorks": true,
+    "twoIndependentExclusionCheckmarks": true,
+    "aboutDiagnosticsOpensTestPage": true
+  },
+  "nativeLifecycleProbe": {
+    "seconds": 3,
+    "silenceExplicitlyAllowed": true,
+    "excludedApplications": ["com.google.Chrome", "com.apple.Safari"],
+    "frames": 143872,
+    "sampleTimeDiscontinuities": 0,
+    "settingsUnchanged": true,
+    "inputRemoved": true,
+    "cleanupErrors": []
+  },
+  "freshFourRouteBrowserSignalRun": false,
+  "browserSignalEvidence": "verification-browser-matrix.json (version 0.2)",
+  "hostedCiExecuted": false
+}
